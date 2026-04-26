@@ -28,6 +28,35 @@ DUMMY_ANALYSIS = {
 
 
 def render_analysis_panel():
+    # PDF 업로드 모드
+    if st.session_state.selected_paper == "pdf":
+        pdf_name = st.session_state.get("pdf_name", "업로드된 논문")
+        pdf_text = st.session_state.get("pdf_text", "")
+        st.markdown(f"""
+        <div style='background:white; border-radius:12px; padding:24px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
+          <div style='font-size:12px; color:#2563EB; font-weight:600; margin-bottom:6px;'>
+            📄 업로드된 PDF
+          </div>
+          <div style='font-size:17px; font-weight:700; color:#1E293B; margin-bottom:20px;'>
+            {pdf_name}
+          </div>
+          <div class="section-card">
+            <div class="section-title">📋 추출된 텍스트 미리보기</div>
+            <div style='font-size:12px; color:#334155; line-height:1.7;
+                        max-height:200px; overflow-y:auto; white-space:pre-wrap;'>
+              {pdf_text[:1000]}{'...' if len(pdf_text) > 1000 else ''}
+            </div>
+          </div>
+          <div class="section-card" style='text-align:center; color:#94A3B8;'>
+            <div style='font-size:24px; margin-bottom:8px;'>🤖</div>
+            <div style='font-weight:600; color:#1E293B; margin-bottom:4px;'>AI 분석 준비 중</div>
+            <div style='font-size:13px;'>OpenAI API 연결 후 자동으로 분석 결과가 표시됩니다.</div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
     if st.session_state.selected_paper is None:
         st.markdown("""
         <div style='background:white; border-radius:12px; padding:60px 24px;

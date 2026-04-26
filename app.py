@@ -146,6 +146,10 @@ st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 # 세션 상태 초기화
 if "selected_paper" not in st.session_state:
     st.session_state.selected_paper = None
+if "pdf_text" not in st.session_state:
+    st.session_state.pdf_text = ""
+if "pdf_name" not in st.session_state:
+    st.session_state.pdf_name = ""
 
 # 두 패널 레이아웃
 left_col, right_col = st.columns([1, 1.2], gap="medium")
