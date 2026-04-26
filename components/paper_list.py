@@ -12,6 +12,8 @@ DUMMY_PAPERS = [
         "journal": "Computer Vision and Pattern Recognition",
         "year": 2023,
         "doi": "10.1234/example1",
+        "color": ("2563EB", "7C3AED"),
+        "icon": "🤖",
     },
     {
         "id": 2,
@@ -22,6 +24,8 @@ DUMMY_PAPERS = [
         "journal": "Medical Informatics",
         "year": 2022,
         "doi": "10.1234/example2",
+        "color": ("059669", "0891B2"),
+        "icon": "🧬",
     },
     {
         "id": 3,
@@ -32,6 +36,8 @@ DUMMY_PAPERS = [
         "journal": "Computer Vision and AI Recognition",
         "year": 2023,
         "doi": "10.1234/example3",
+        "color": ("D97706", "DC2626"),
+        "icon": "⚡",
     },
     {
         "id": 4,
@@ -42,6 +48,8 @@ DUMMY_PAPERS = [
         "journal": "Neural Information Processing Systems",
         "year": 2023,
         "doi": "10.1234/example4",
+        "color": ("7C3AED", "DB2777"),
+        "icon": "🎨",
     },
     {
         "id": 5,
@@ -52,10 +60,32 @@ DUMMY_PAPERS = [
         "journal": "Bioinformatics",
         "year": 2022,
         "doi": "10.1234/example5",
+        "color": ("0369A1", "059669"),
+        "icon": "💊",
     },
 ]
 
 BADGE_CLASS = {"Q1": "badge-q1", "Q2": "badge-q2", "Q3": "badge-q3"}
+
+
+def _thumbnail(color_start, color_end, icon, title):
+    short = title[:28] + "…" if len(title) > 28 else title
+    return f"""
+    <div style='
+        background: linear-gradient(135deg, #{color_start}, #{color_end});
+        border-radius: 8px;
+        width: 72px; min-width: 72px; height: 88px;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 4px; padding: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    '>
+        <span style='font-size:24px;'>{icon}</span>
+        <span style='font-size:8px; color:rgba(255,255,255,0.85);
+                     text-align:center; line-height:1.3; font-weight:600;'>
+            {short}
+        </span>
+    </div>"""
 
 
 def render_paper_list():
@@ -104,16 +134,20 @@ def render_paper_list():
             badge_cls = BADGE_CLASS.get(paper["q_level"], "badge-q2")
             is_selected = st.session_state.selected_paper == paper["id"]
             card_cls = "paper-card selected" if is_selected else "paper-card"
+            thumb = _thumbnail(paper["color"][0], paper["color"][1], paper["icon"], paper["title"])
 
             st.markdown(f"""
-            <div class="{card_cls}">
-              <div class="paper-title">{paper['title']}</div>
-              <div class="paper-authors">👥 {paper['authors']}</div>
-              <div class="paper-meta">
-                <span class="paper-citations">⭐ {paper['citations']:,} citations</span>
-                <span>Journal Q-level</span>
-                <span class="{badge_cls}">{paper['q_level']}</span>
-                <span style="color:#64748B">- {paper['journal']}</span>
+            <div class="{card_cls}" style='display:flex; gap:14px; align-items:flex-start;'>
+              {thumb}
+              <div style='flex:1; min-width:0;'>
+                <div class="paper-title">{paper['title']}</div>
+                <div class="paper-authors">👥 {paper['authors']}</div>
+                <div class="paper-meta">
+                  <span class="paper-citations">⭐ {paper['citations']:,} citations</span>
+                  <span>Journal Q-level</span>
+                  <span class="{badge_cls}">{paper['q_level']}</span>
+                  <span style="color:#64748B">- {paper['journal']}</span>
+                </div>
               </div>
             </div>
             """, unsafe_allow_html=True)

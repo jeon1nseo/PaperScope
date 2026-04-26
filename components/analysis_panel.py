@@ -1,5 +1,14 @@
 import streamlit as st
 
+# 논문별 썸네일 색상/아이콘 (paper_list.py와 동일하게 유지)
+PAPER_VISUALS = {
+    1: {"color": ("2563EB", "7C3AED"), "icon": "🤖"},
+    2: {"color": ("059669", "0891B2"), "icon": "🧬"},
+    3: {"color": ("D97706", "DC2626"), "icon": "⚡"},
+    4: {"color": ("7C3AED", "DB2777"), "icon": "🎨"},
+    5: {"color": ("0369A1", "059669"), "icon": "💊"},
+}
+
 # 더미 분석 데이터 (나중에 OpenAI API로 교체)
 DUMMY_ANALYSIS = {
     1: {
@@ -79,17 +88,38 @@ def render_analysis_panel():
         st.info("이 논문의 분석 데이터를 준비 중입니다.")
         return
 
-    # 패널 헤더
+    visual = PAPER_VISUALS.get(paper_id, {"color": ("2563EB", "7C3AED"), "icon": "📄"})
+    c1, c2 = visual["color"]
+    icon = visual["icon"]
+
+    # 패널 헤더 (썸네일 이미지 포함)
     st.markdown(f"""
     <div style='background:white; border-radius:12px; padding:24px;
                 box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
-      <div style='display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;'>
-        <div>
+      <div style='display:flex; gap:20px; align-items:flex-start; margin-bottom:20px;'>
+        <div style='
+            background: linear-gradient(135deg, #{c1}, #{c2});
+            border-radius:12px; min-width:110px; height:140px;
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center; gap:8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        '>
+          <span style='font-size:40px;'>{icon}</span>
+          <span style='font-size:9px; color:rgba(255,255,255,0.8);
+                       font-weight:700; letter-spacing:0.05em;'>RESEARCH PAPER</span>
+        </div>
+        <div style='flex:1;'>
           <div style='font-size:12px; color:#2563EB; font-weight:600; margin-bottom:6px;'>
             ✨ AI-Powered Paper Analysis
           </div>
-          <div style='font-size:17px; font-weight:700; color:#1E293B; line-height:1.4;'>
+          <div style='font-size:16px; font-weight:700; color:#1E293B; line-height:1.5; margin-bottom:12px;'>
             {analysis['title']}
+          </div>
+          <div style='display:flex; gap:8px; flex-wrap:wrap;'>
+            <span style='background:#EFF6FF; color:#2563EB; padding:3px 10px;
+                         border-radius:12px; font-size:11px; font-weight:600;'>📄 PDF</span>
+            <span style='background:#F0FDF4; color:#15803D; padding:3px 10px;
+                         border-radius:12px; font-size:11px; font-weight:600;'>✅ 분석 완료</span>
           </div>
         </div>
       </div>
