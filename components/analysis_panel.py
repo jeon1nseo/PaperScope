@@ -1,6 +1,5 @@
 import streamlit as st
 
-# 논문별 썸네일 색상/아이콘 (paper_list.py와 동일하게 유지)
 PAPER_VISUALS = {
     1: {"color": ("2563EB", "7C3AED"), "icon": "🤖"},
     2: {"color": ("059669", "0891B2"), "icon": "🧬"},
@@ -9,7 +8,6 @@ PAPER_VISUALS = {
     5: {"color": ("0369A1", "059669"), "icon": "💊"},
 }
 
-# 더미 분석 데이터 (나중에 OpenAI API로 교체)
 DUMMY_ANALYSIS = {
     1: {
         "title": "Transformers for Large-Scale Text Classification: A Survey",
@@ -32,67 +30,102 @@ DUMMY_ANALYSIS = {
         "methodology_clarity": "VERY GOOD",
         "code_link": "https://github.com/example/transformer-text-cls",
         "data_link": "https://huggingface.co/datasets/example",
-    }
+    },
+    2: {
+        "title": "Self-Supervised Learning in Medical Imaging",
+        "summary": (
+            "This paper investigates self-supervised learning (SSL) techniques applied to medical imaging tasks "
+            "including CT, MRI, and X-ray classification. The authors propose a contrastive pretraining strategy "
+            "that outperforms supervised baselines with significantly fewer labeled samples, demonstrating strong "
+            "generalization across multiple clinical datasets."
+        ),
+        "contributions": [
+            "Proposes MedSSL: a domain-specific self-supervised pretraining framework for medical images",
+            "Achieves 94.3% diagnostic accuracy with only 10% labeled data on chest X-ray benchmark",
+            "Introduces medical image-specific augmentation pipeline for contrastive learning",
+            "Demonstrates cross-modality transfer (CT → MRI) with minimal fine-tuning",
+            "Releases large-scale unlabeled medical imaging dataset (500K+ images)",
+        ],
+        "reproducibility_score": 7.5,
+        "code_availability": "HIGH",
+        "datasets": "PARTIAL",
+        "methodology_clarity": "GOOD",
+        "code_link": "https://github.com/example/medssl",
+        "data_link": "N/A (institutional approval required)",
+    },
+    3: {
+        "title": "Efficient Neural Architecture Search for Edge Devices",
+        "summary": (
+            "This work presents an efficient NAS framework targeting resource-constrained edge devices. "
+            "The proposed method combines hardware-aware search with once-for-all supernet training to reduce "
+            "search cost by 300x compared to prior methods, while achieving Pareto-optimal accuracy-latency "
+            "trade-offs on mobile and IoT hardware."
+        ),
+        "contributions": [
+            "Proposes HW-NAS: hardware-aware neural architecture search with device-specific proxy metrics",
+            "Reduces NAS search cost from 300 GPU-days to under 1 GPU-day via progressive shrinking",
+            "Achieves 72.1% top-1 ImageNet accuracy at 15ms latency on Cortex-M55",
+            "Introduces unified supernet that supports 10,000+ sub-networks without retraining",
+            "Provides NAS benchmark across 8 edge hardware targets",
+        ],
+        "reproducibility_score": 6.8,
+        "code_availability": "MEDIUM",
+        "datasets": "OPEN",
+        "methodology_clarity": "GOOD",
+        "code_link": "https://github.com/example/hw-nas",
+        "data_link": "https://image-net.org",
+    },
+    4: {
+        "title": "Diffusion Models for Image Synthesis: A Comprehensive Review",
+        "summary": (
+            "A thorough review of score-based and denoising diffusion probabilistic models (DDPMs) for "
+            "high-fidelity image synthesis. The survey categorizes 80+ methods across unconditional generation, "
+            "text-to-image, image editing, and video synthesis tasks, and provides a unified theoretical framework "
+            "connecting diffusion models to stochastic differential equations."
+        ),
+        "contributions": [
+            "Unified theoretical framework linking DDPMs, score matching, and stochastic differential equations",
+            "Taxonomy of 80+ diffusion-based methods across 12 application domains",
+            "Comprehensive benchmark comparison on FID, CLIP score, and human evaluation metrics",
+            "Analysis of sampling acceleration techniques (DDIM, DPM-Solver, consistency models)",
+            "Open-source evaluation toolkit supporting 15 diffusion model baselines",
+        ],
+        "reproducibility_score": 9.1,
+        "code_availability": "HIGH",
+        "datasets": "OPEN",
+        "methodology_clarity": "VERY GOOD",
+        "code_link": "https://github.com/example/diffusion-survey",
+        "data_link": "https://huggingface.co/datasets/laion",
+    },
+    5: {
+        "title": "Graph Neural Networks in Drug Discovery",
+        "summary": (
+            "This paper applies graph neural networks (GNNs) to molecular property prediction and drug-target "
+            "interaction modeling. By representing molecules as graphs with atom nodes and bond edges, the proposed "
+            "AttentiveFP-based architecture achieves state-of-the-art performance on 11 MoleculeNet benchmarks, "
+            "accelerating virtual screening pipelines by 40x."
+        ),
+        "contributions": [
+            "Proposes MolGNN: an attentive graph neural network for molecular property prediction",
+            "State-of-the-art results on 11/15 MoleculeNet benchmark tasks",
+            "Novel graph-level readout mechanism capturing both local and global molecular features",
+            "Drug-target interaction prediction achieving 0.92 AUC on BindingDB",
+            "Open-source toolkit integrating with RDKit and DeepChem for virtual screening",
+        ],
+        "reproducibility_score": 7.9,
+        "code_availability": "HIGH",
+        "datasets": "OPEN",
+        "methodology_clarity": "GOOD",
+        "code_link": "https://github.com/example/molgnn",
+        "data_link": "https://moleculenet.org",
+    },
 }
 
 
-def render_analysis_panel():
-    # PDF 업로드 모드
-    if st.session_state.selected_paper == "pdf":
-        pdf_name = st.session_state.get("pdf_name", "업로드된 논문")
-        pdf_text = st.session_state.get("pdf_text", "")
-        st.markdown(f"""
-        <div style='background:white; border-radius:12px; padding:24px;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
-          <div style='font-size:12px; color:#2563EB; font-weight:600; margin-bottom:6px;'>
-            📄 업로드된 PDF
-          </div>
-          <div style='font-size:17px; font-weight:700; color:#1E293B; margin-bottom:20px;'>
-            {pdf_name}
-          </div>
-          <div class="section-card">
-            <div class="section-title">📋 추출된 텍스트 미리보기</div>
-            <div style='font-size:12px; color:#334155; line-height:1.7;
-                        max-height:200px; overflow-y:auto; white-space:pre-wrap;'>
-              {pdf_text[:1000]}{'...' if len(pdf_text) > 1000 else ''}
-            </div>
-          </div>
-          <div class="section-card" style='text-align:center; color:#94A3B8;'>
-            <div style='font-size:24px; margin-bottom:8px;'>🤖</div>
-            <div style='font-weight:600; color:#1E293B; margin-bottom:4px;'>AI 분석 준비 중</div>
-            <div style='font-size:13px;'>OpenAI API 연결 후 자동으로 분석 결과가 표시됩니다.</div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-        return
-
-    if st.session_state.selected_paper is None:
-        st.markdown("""
-        <div style='background:white; border-radius:12px; padding:60px 24px;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center;'>
-          <div style='font-size:48px; margin-bottom:16px;'>📄</div>
-          <div style='font-size:18px; font-weight:700; color:#1E293B; margin-bottom:8px;'>
-            AI Analysis
-          </div>
-          <div style='font-size:14px; color:#94A3B8;'>
-            왼쪽에서 논문을 선택하면 AI 분석 결과가 여기에 표시됩니다.
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-        return
-
-    paper_id = st.session_state.selected_paper
-    analysis = DUMMY_ANALYSIS.get(paper_id)
-
-    if analysis is None:
-        st.info("이 논문의 분석 데이터를 준비 중입니다.")
-        return
-
-    visual = PAPER_VISUALS.get(paper_id, {"color": ("2563EB", "7C3AED"), "icon": "📄"})
+def _render_analysis(analysis: dict, visual: dict):
     c1, c2 = visual["color"]
     icon = visual["icon"]
 
-    # 패널 헤더 (썸네일 이미지 포함)
     st.markdown(f"""
     <div style='background:white; border-radius:12px; padding:24px;
                 box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
@@ -125,7 +158,6 @@ def render_analysis_panel():
       </div>
     """, unsafe_allow_html=True)
 
-    # 구조화된 요약
     st.markdown(f"""
       <div class="section-card">
         <div class="section-title">📋 STRUCTURED SUMMARY</div>
@@ -133,7 +165,6 @@ def render_analysis_panel():
       </div>
     """, unsafe_allow_html=True)
 
-    # 핵심 기여 + 재현성 점수 (2열)
     contrib_col, repro_col = st.columns([1.2, 1])
 
     with contrib_col:
@@ -185,3 +216,81 @@ def render_analysis_panel():
         """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_analysis_panel():
+    # 닫기 버튼 (논문 선택된 경우)
+    if st.session_state.selected_paper is not None:
+        close_col, _ = st.columns([0.12, 0.88])
+        with close_col:
+            if st.button("✕ 닫기", key="close_panel"):
+                st.session_state.selected_paper = None
+                st.session_state.pdf_text = ""
+                st.session_state.pdf_name = ""
+                st.session_state.pdf_analysis = None
+                st.rerun()
+
+    # PDF 업로드 모드
+    if st.session_state.selected_paper == "pdf":
+        pdf_name = st.session_state.get("pdf_name", "업로드된 논문")
+        pdf_text = st.session_state.get("pdf_text", "")
+        pdf_analysis = st.session_state.get("pdf_analysis")
+
+        if pdf_analysis and "error" not in pdf_analysis:
+            visual = {"color": ("2563EB", "7C3AED"), "icon": "📄"}
+            _render_analysis(pdf_analysis, visual)
+            return
+
+        # 분석 결과 없을 때 (API 키 미설정 or 오류)
+        import os
+        has_api_key = bool(os.getenv("OPENAI_API_KEY"))
+
+        st.markdown(f"""
+        <div style='background:white; border-radius:12px; padding:24px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
+          <div style='font-size:12px; color:#2563EB; font-weight:600; margin-bottom:6px;'>
+            📄 업로드된 PDF
+          </div>
+          <div style='font-size:17px; font-weight:700; color:#1E293B; margin-bottom:20px;'>
+            {pdf_name}
+          </div>
+          <div class="section-card">
+            <div class="section-title">📋 추출된 텍스트 미리보기</div>
+            <div style='font-size:12px; color:#334155; line-height:1.7;
+                        max-height:200px; overflow-y:auto; white-space:pre-wrap;'>
+              {pdf_text[:1000]}{'...' if len(pdf_text) > 1000 else ''}
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if not has_api_key:
+            st.warning("AI 분석을 사용하려면 OPENAI_API_KEY 환경변수를 설정해주세요.\n\n터미널에서: `export OPENAI_API_KEY='sk-...'`")
+        elif pdf_analysis and "error" in pdf_analysis:
+            st.error(f"AI 분석 오류: {pdf_analysis['error']}")
+        return
+
+    if st.session_state.selected_paper is None:
+        st.markdown("""
+        <div style='background:white; border-radius:12px; padding:60px 24px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.08); text-align:center;'>
+          <div style='font-size:48px; margin-bottom:16px;'>📄</div>
+          <div style='font-size:18px; font-weight:700; color:#1E293B; margin-bottom:8px;'>
+            AI Analysis
+          </div>
+          <div style='font-size:14px; color:#94A3B8;'>
+            왼쪽에서 논문을 선택하면 AI 분석 결과가 여기에 표시됩니다.
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+
+    paper_id = st.session_state.selected_paper
+    analysis = DUMMY_ANALYSIS.get(paper_id)
+    visual = PAPER_VISUALS.get(paper_id, {"color": ("2563EB", "7C3AED"), "icon": "📄"})
+
+    if analysis is None:
+        st.info("이 논문의 분석 데이터를 준비 중입니다.")
+        return
+
+    _render_analysis(analysis, visual)

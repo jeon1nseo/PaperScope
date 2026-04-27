@@ -1,7 +1,7 @@
 import streamlit as st
 from utils.pdf_parser import extract_text_from_pdf
+from utils.ai_analyzer import analyze_paper_with_ai
 
-# 임시 더미 데이터 (나중에 OpenAlex API로 교체)
 DUMMY_PAPERS = [
     {
         "id": 1,
@@ -100,17 +100,31 @@ def render_paper_list():
         )
 
         if uploaded is not None:
-            with st.spinner("PDF 텍스트 추출 중..."):
-                text = extract_text_from_pdf(uploaded)
-                st.session_state.pdf_text = text
-                st.session_state.pdf_name = uploaded.name
-                st.session_state.selected_paper = "pdf"
+            # 이미 같은 파일을 처리했으면 스킵
+            if st.session_state.get("pdf_name") != uploaded.name:
+                with st.spinner("PDF 텍스트 추출 중..."):
+                    text = extract_text_from_pdf(uploaded)
+                    st.session_state.pdf_text = text
+                    st.session_state.pdf_name = uploaded.name
+                    st.session_state.pdf_analysis = None
 
-            st.success(f"✅ {uploaded.name} 업로드 완료!")
-            st.caption(f"추출된 텍스트: {len(text):,}자")
+                if text.startswith("[오류]"):
+                    st.error(text)
+                else:
+                    import os
+                    if os.getenv("OPENAI_API_KEY"):
+                        with st.spinner("AI 분석 중... (30초~1분 소요)"):
+                            analysis = analyze_paper_with_ai(text)
+                            st.session_state.pdf_analysis = analysis
+                    st.session_state.selected_paper = "pdf"
+                    st.rerun()
+            else:
+                st.success(f"✅ {uploaded.name} 업로드 완료!")
+                st.caption(f"추출된 텍스트: {len(st.session_state.pdf_text):,}자")
 
-            if st.button("📊 AI 분석 시작", use_container_width=True, type="primary"):
-                st.rerun()
+                if st.button("📊 AI 분석 보기", use_container_width=True, type="primary"):
+                    st.session_state.selected_paper = "pdf"
+                    st.rerun()
         else:
             st.markdown("""
             <div style='border:2px dashed #CBD5E1; border-radius:10px;
@@ -123,14 +137,43 @@ def render_paper_list():
 
     # ── 논문 목록 탭 ───────────────────────────────────────────
     with tab_browse:
-        st.markdown("""
-        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;'>
-          <span style='font-weight:700; font-size:15px; color:#1E293B;'>All papers</span>
-          <span style='font-size:12px; color:#94A3B8;'>Page 1 of 3</span>
-        </div>
-        """, unsafe_allow_html=True)
+        # 검색 필터
+        search_query = st.text_input(
+            "검색",
+            placeholder="제목, 저자, 저널로 검색...",
+            label_visibility="collapsed",
+            key="paper_search",
+        )
 
-        for paper in DUMMY_PAPERS:
+        filtered = DUMMY_PAPERS
+        if search_query.strip():
+            q = search_query.lower()
+            filtered = [
+                p for p in DUMMY_PAPERS
+                if q in p["title"].lower()
+                or q in p["authors"].lower()
+                or q in p["journal"].lower()
+            ]
+
+        header_col, count_col = st.columns([2, 1])
+        with header_col:
+            st.markdown(
+                "<span style='font-weight:700; font-size:15px; color:#1E293B;'>All papers</span>",
+                unsafe_allow_html=True,
+            )
+        with count_col:
+            st.markdown(
+                f"<span style='font-size:12px; color:#94A3B8; float:right;'>{len(filtered)}개 결과</span>",
+                unsafe_allow_html=True,
+            )
+
+        if not filtered:
+            st.markdown(
+                "<div style='text-align:center; color:#94A3B8; padding:40px 0;'>검색 결과가 없습니다.</div>",
+                unsafe_allow_html=True,
+            )
+
+        for paper in filtered:
             badge_cls = BADGE_CLASS.get(paper["q_level"], "badge-q2")
             is_selected = st.session_state.selected_paper == paper["id"]
             card_cls = "paper-card selected" if is_selected else "paper-card"

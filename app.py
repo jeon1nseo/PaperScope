@@ -150,6 +150,8 @@ if "pdf_text" not in st.session_state:
     st.session_state.pdf_text = ""
 if "pdf_name" not in st.session_state:
     st.session_state.pdf_name = ""
+if "pdf_analysis" not in st.session_state:
+    st.session_state.pdf_analysis = None
 
 # 두 패널 레이아웃
 left_col, right_col = st.columns([1, 1.2], gap="medium")
