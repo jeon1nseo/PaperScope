@@ -137,9 +137,7 @@ def _render_analysis(analysis: dict, visual: dict):
             align-items:center; justify-content:center; gap:8px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         '>
-          <span style='font-size:40px;'>{icon}</span>
-          <span style='font-size:9px; color:rgba(255,255,255,0.8);
-                       font-weight:700; letter-spacing:0.05em;'>RESEARCH PAPER</span>
+          <span style='font-size:48px;'>{icon}</span>
         </div>
         <div style='flex:1;'>
           <div style='font-size:12px; color:#2563EB; font-weight:600; margin-bottom:6px;'>

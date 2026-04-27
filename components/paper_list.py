@@ -69,22 +69,15 @@ BADGE_CLASS = {"Q1": "badge-q1", "Q2": "badge-q2", "Q3": "badge-q3"}
 
 
 def _thumbnail(color_start, color_end, icon, title):
-    short = title[:28] + "…" if len(title) > 28 else title
     return f"""
     <div style='
         background: linear-gradient(135deg, #{color_start}, #{color_end});
         border-radius: 8px;
         width: 72px; min-width: 72px; height: 88px;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        gap: 4px; padding: 6px;
+        display: flex; align-items: center; justify-content: center;
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     '>
-        <span style='font-size:24px;'>{icon}</span>
-        <span style='font-size:8px; color:rgba(255,255,255,0.85);
-                     text-align:center; line-height:1.3; font-weight:600;'>
-            {short}
-        </span>
+        <span style='font-size:32px;'>{icon}</span>
     </div>"""
 
 
