@@ -6,6 +6,11 @@ PAPER_VISUALS = {
     3: {"color": ("D97706", "DC2626"), "icon": "⚡"},
     4: {"color": ("7C3AED", "DB2777"), "icon": "🎨"},
     5: {"color": ("0369A1", "059669"), "icon": "💊"},
+    6: {"color": ("0EA5E9", "6366F1"), "icon": "👁️"},
+    7: {"color": ("F59E0B", "EF4444"), "icon": "✨"},
+    8: {"color": ("10B981", "3B82F6"), "icon": "🔧"},
+    9: {"color": ("EC4899", "8B5CF6"), "icon": "🏥"},
+    10: {"color": ("64748B", "334155"), "icon": "💻"},
 }
 
 DUMMY_ANALYSIS = {
@@ -118,6 +123,116 @@ DUMMY_ANALYSIS = {
         "methodology_clarity": "GOOD",
         "code_link": "https://github.com/example/molgnn",
         "data_link": "https://moleculenet.org",
+    },
+    6: {
+        "title": "CLIP: Learning Transferable Visual Models From Natural Language",
+        "summary": (
+            "CLIP trains a vision encoder and text encoder jointly on 400M image-text pairs from the internet "
+            "using contrastive learning, enabling zero-shot transfer to downstream vision tasks without "
+            "task-specific fine-tuning. The model matches or exceeds supervised baselines on over 30 benchmarks "
+            "including ImageNet, demonstrating the power of natural language supervision for visual learning."
+        ),
+        "contributions": [
+            "Introduces contrastive language-image pretraining (CLIP) on 400M web-scraped image-text pairs",
+            "Achieves zero-shot ImageNet accuracy of 76.2%, matching supervised ResNet-50",
+            "Demonstrates strong transfer learning across 30+ vision benchmarks without fine-tuning",
+            "Releases WIT (WebImageText) dataset of 400M image-text pairs",
+            "Shows natural language is a flexible supervision signal for vision models",
+        ],
+        "reproducibility_score": 8.9,
+        "code_availability": "HIGH",
+        "datasets": "PARTIAL",
+        "methodology_clarity": "VERY GOOD",
+        "code_link": "https://github.com/openai/CLIP",
+        "data_link": "N/A (WIT not publicly released)",
+    },
+    7: {
+        "title": "Attention Is All You Need",
+        "summary": (
+            "This landmark paper introduces the Transformer architecture, which relies entirely on self-attention "
+            "mechanisms and dispenses with recurrence and convolutions. The Transformer achieves state-of-the-art "
+            "performance on English-to-German and English-to-French translation tasks while being significantly "
+            "more parallelizable and requiring less training time than recurrent models."
+        ),
+        "contributions": [
+            "Proposes the Transformer: first sequence model based solely on self-attention",
+            "Introduces multi-head attention mechanism for parallel sequence processing",
+            "Achieves 28.4 BLEU on WMT 2014 English-to-German, surpassing all previous models",
+            "Reduces training time from weeks to 12 hours on 8 GPUs via full parallelization",
+            "Establishes the foundation for BERT, GPT, and virtually all modern LLMs",
+        ],
+        "reproducibility_score": 9.5,
+        "code_availability": "HIGH",
+        "datasets": "OPEN",
+        "methodology_clarity": "VERY GOOD",
+        "code_link": "https://github.com/tensorflow/tensor2tensor",
+        "data_link": "https://www.statmt.org/wmt14/",
+    },
+    8: {
+        "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+        "summary": (
+            "LoRA proposes a parameter-efficient fine-tuning method that freezes pretrained model weights and "
+            "injects trainable low-rank decomposition matrices into each Transformer layer. This reduces the "
+            "number of trainable parameters by 10,000x and GPU memory by 3x compared to full fine-tuning, "
+            "while achieving comparable or better performance on downstream tasks."
+        ),
+        "contributions": [
+            "Introduces LoRA: trainable rank decomposition matrices injected into frozen pretrained weights",
+            "Reduces trainable parameters by 10,000x vs full fine-tuning on GPT-3 175B",
+            "Matches or outperforms full fine-tuning on GLUE, SuperGLUE, and generation benchmarks",
+            "No additional inference latency compared to adapter-based methods",
+            "Releases open-source implementation compatible with HuggingFace transformers",
+        ],
+        "reproducibility_score": 9.2,
+        "code_availability": "HIGH",
+        "datasets": "OPEN",
+        "methodology_clarity": "VERY GOOD",
+        "code_link": "https://github.com/microsoft/LoRA",
+        "data_link": "https://huggingface.co/datasets/glue",
+    },
+    9: {
+        "title": "Segment Anything Model for Medical Image Segmentation",
+        "summary": (
+            "This paper adapts Meta's Segment Anything Model (SAM) to the medical imaging domain through "
+            "domain-specific fine-tuning on diverse medical image datasets including CT, MRI, and endoscopy. "
+            "The proposed MedSAM achieves superior zero-shot segmentation performance across 11 medical "
+            "image modalities compared to general-purpose and task-specific segmentation models."
+        ),
+        "contributions": [
+            "Adapts SAM foundation model for medical imaging via lightweight domain-specific fine-tuning",
+            "Curates largest medical image segmentation dataset: 1.5M image-mask pairs across 11 modalities",
+            "Achieves state-of-the-art on 11/14 medical segmentation benchmarks in zero-shot setting",
+            "Demonstrates strong generalization to unseen medical imaging devices and protocols",
+            "Releases MedSAM weights and training code under open-source license",
+        ],
+        "reproducibility_score": 8.4,
+        "code_availability": "HIGH",
+        "datasets": "PARTIAL",
+        "methodology_clarity": "GOOD",
+        "code_link": "https://github.com/bowang-lab/MedSAM",
+        "data_link": "N/A (partially restricted)",
+    },
+    10: {
+        "title": "Reinforcement Learning from Human Feedback for Code Generation",
+        "summary": (
+            "This paper applies RLHF to improve code generation quality beyond what supervised fine-tuning "
+            "achieves. Human preference data is collected on code correctness, readability, and efficiency, "
+            "then used to train a reward model that guides PPO-based policy optimization of a code LLM, "
+            "resulting in significant improvements on HumanEval and CodeContests benchmarks."
+        ),
+        "contributions": [
+            "First systematic application of RLHF to code generation with human preference annotations",
+            "Improves HumanEval pass@1 by 14.2% over SFT baseline using PPO fine-tuning",
+            "Introduces CodePref dataset: 50K human preference comparisons on code quality",
+            "Shows RLHF improves code readability and efficiency beyond functional correctness",
+            "Ablation study identifying reward model size as key factor for RLHF code gains",
+        ],
+        "reproducibility_score": 6.5,
+        "code_availability": "LOW",
+        "datasets": "CLOSED",
+        "methodology_clarity": "FAIR",
+        "code_link": "N/A",
+        "data_link": "N/A (proprietary dataset)",
     },
 }
 
