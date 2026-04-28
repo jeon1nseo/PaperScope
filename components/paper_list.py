@@ -165,11 +165,9 @@ def render_paper_list():
                 if text.startswith("[오류]"):
                     st.error(text)
                 else:
-                    import os
-                    if os.getenv("OPENAI_API_KEY"):
-                        with st.spinner("AI 분석 중... (30초~1분 소요)"):
-                            analysis = analyze_paper_with_ai(text)
-                            st.session_state.pdf_analysis = analysis
+                    with st.spinner("AI 분석 중... (1~2분 소요)"):
+                        analysis = analyze_paper_with_ai(text)
+                        st.session_state.pdf_analysis = analysis
                     st.session_state.selected_paper = "pdf"
                     st.rerun()
             else:

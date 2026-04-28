@@ -1,53 +1,55 @@
-import os
 import json
 from openai import OpenAI
 
 
-ANALYSIS_PROMPT = """You are an academic paper analysis assistant. Analyze the following paper text and return a JSON object.
+ANALYSIS_PROMPT = """당신은 엄격한 학술 논문 리뷰어이자 AI/머신러닝 전문가입니다. 아래 논문 텍스트({text})를 분석하여 엄격하게 구조화된 JSON만 반환하세요. 다른 텍스트는 절대 포함하지 마세요.
 
-Paper text (first part):
-{text}
+규칙:
+- summary, contributions, 모든 설명 텍스트는 반드시 한국어로 작성
+- JSON 키는 영어 유지
+- difficulty.level은 반드시 Beginner, Intermediate, Advanced 중 하나
 
-Return ONLY a JSON object with this exact structure:
+아래 구조의 JSON만 반환:
 {{
-  "title": "full paper title",
-  "summary": "3-4 sentence structured summary covering main themes, methodology, and conclusions",
+  "title": "논문 제목 원문 그대로",
+  "summary": "연구 목적, 제안 방법, 실험 결과, 결론을 포함한 3-4문장 요약 (한국어)",
   "contributions": [
-    "contribution 1",
-    "contribution 2",
-    "contribution 3",
-    "contribution 4",
-    "contribution 5"
+    "핵심 기여 1 (한국어)",
+    "핵심 기여 2 (한국어)",
+    "핵심 기여 3 (한국어)",
+    "핵심 기여 4 (한국어)",
+    "핵심 기여 5 (한국어)"
   ],
-  "reproducibility_score": 7.5,
-  "code_availability": "HIGH",
-  "datasets": "OPEN",
-  "methodology_clarity": "VERY GOOD",
-  "code_link": "https://github.com/... or N/A",
-  "data_link": "https://... or N/A"
-}}
-
-For reproducibility_score use 0-10 scale.
-For code_availability use: HIGH, MEDIUM, LOW, or NONE
-For datasets use: OPEN, PARTIAL, or CLOSED
-For methodology_clarity use: VERY GOOD, GOOD, FAIR, or POOR
-"""
+  "reproducibility": {{
+    "dataset_status": "데이터셋 공개 여부 및 접근 가능성 (한국어)",
+    "method_detail_level": "실험 재현에 필요한 세부 정보 충실도 설명 (한국어)",
+    "code_availability": "코드 공개 여부 (한국어)"
+  }},
+  "reliability": {{
+    "score": 75,
+    "evaluation_reason": "저자 신뢰도, 게재 학술지/학회 수준, 실험 근거, 이론적 타당성 기반 신뢰도 평가 (한국어)"
+  }},
+  "difficulty": {{
+    "level": "Intermediate",
+    "required_knowledge": ["필요 배경지식 1", "필요 배경지식 2", "필요 배경지식 3"],
+    "reasoning": "난이도 판단 근거 (한국어)"
+  }},
+  "search_queries": ["관련 검색어 1", "관련 검색어 2", "관련 검색어 3"]
+}}"""
 
 
 def analyze_paper_with_ai(text: str) -> dict | None:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
-
     try:
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="llama3:latest",
             messages=[
                 {"role": "user", "content": ANALYSIS_PROMPT.format(text=text[:8000])}
             ],
-            response_format={"type": "json_object"},
         )
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        return json.loads(content[start:end])
     except Exception as e:
         return {"error": str(e)}

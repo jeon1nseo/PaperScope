@@ -241,6 +241,7 @@ def _render_analysis(analysis: dict, visual: dict):
     c1, c2 = visual["color"]
     icon = visual["icon"]
 
+    # 헤더
     st.markdown(f"""
     <div style='background:white; border-radius:12px; padding:24px;
                 box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
@@ -248,8 +249,7 @@ def _render_analysis(analysis: dict, visual: dict):
         <div style='
             background: linear-gradient(135deg, #{c1}, #{c2});
             border-radius:12px; min-width:110px; height:140px;
-            display:flex; flex-direction:column;
-            align-items:center; justify-content:center; gap:8px;
+            display:flex; align-items:center; justify-content:center;
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         '>
           <span style='font-size:48px;'>{icon}</span>
@@ -259,7 +259,7 @@ def _render_analysis(analysis: dict, visual: dict):
             ✨ AI-Powered Paper Analysis
           </div>
           <div style='font-size:16px; font-weight:700; color:#1E293B; line-height:1.5; margin-bottom:12px;'>
-            {analysis['title']}
+            {analysis.get('title', '')}
           </div>
           <div style='display:flex; gap:8px; flex-wrap:wrap;'>
             <span style='background:#EFF6FF; color:#2563EB; padding:3px 10px;
@@ -271,62 +271,123 @@ def _render_analysis(analysis: dict, visual: dict):
       </div>
     """, unsafe_allow_html=True)
 
+    # 요약
     st.markdown(f"""
       <div class="section-card">
-        <div class="section-title">📋 STRUCTURED SUMMARY</div>
-        <div style='font-size:13px; color:#334155; line-height:1.7;'>{analysis['summary']}</div>
+        <div class="section-title">📋 논문 요약</div>
+        <div style='font-size:13px; color:#334155; line-height:1.7;'>{analysis.get('summary', '')}</div>
       </div>
     """, unsafe_allow_html=True)
 
-    contrib_col, repro_col = st.columns([1.2, 1])
+    # 핵심 기여 + 신뢰도 점수
+    contrib_col, rely_col = st.columns([1.2, 1])
 
     with contrib_col:
         contributions_html = "".join(
             f"<li style='margin-bottom:6px; color:#334155; font-size:13px;'>{c}</li>"
-            for c in analysis["contributions"]
+            for c in analysis.get("contributions", [])
         )
         st.markdown(f"""
-        <div class="section-card" style='height:100%;'>
-          <div class="section-title">🔑 KEY CONTRIBUTIONS</div>
-          <div style='font-size:12px; color:#94A3B8; margin-bottom:8px;'>
-            Unique novelties or major findings:
-          </div>
+        <div class="section-card">
+          <div class="section-title">🔑 핵심 기여</div>
           <ul style='padding-left:16px; margin:0;'>
             {contributions_html}
           </ul>
         </div>
         """, unsafe_allow_html=True)
 
-    with repro_col:
-        score = analysis["reproducibility_score"]
+    with rely_col:
+        # 새 구조: reliability.score / 구 구조: reproducibility_score
+        if "reliability" in analysis:
+            score = analysis["reliability"].get("score", "-")
+            reason = analysis["reliability"].get("evaluation_reason", "")
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">⭐ 신뢰도 점수</div>
+              <div style='text-align:center; padding:12px 0;'>
+                <span style='font-size:42px; font-weight:800; color:#2563EB;'>{score}</span>
+                <span style='font-size:18px; color:#94A3B8;'> / 100</span>
+              </div>
+              <div style='font-size:11px; color:#64748B; line-height:1.6;'>{reason[:200]}{'...' if len(reason) > 200 else ''}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            score = analysis.get("reproducibility_score", "-")
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">✅ 재현성 점수</div>
+              <div style='text-align:center; padding:12px 0;'>
+                <span style='font-size:42px; font-weight:800; color:#2563EB;'>{score}</span>
+                <span style='font-size:18px; color:#94A3B8;'> / 10</span>
+              </div>
+              <div class="metric-row">
+                <div class="metric-item">
+                  <div class="metric-value">{analysis.get('code_availability', '-')}</div>
+                  <div class="metric-label">CODE</div>
+                </div>
+                <div class="metric-item">
+                  <div class="metric-value">{analysis.get('datasets', '-')}</div>
+                  <div class="metric-label">DATASETS</div>
+                </div>
+                <div class="metric-item">
+                  <div class="metric-value">{analysis.get('methodology_clarity', '-')}</div>
+                  <div class="metric-label">CLARITY</div>
+                </div>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # 재현성 상세 (새 구조)
+    if "reproducibility" in analysis:
+        repro = analysis["reproducibility"]
         st.markdown(f"""
-        <div class="section-card" style='height:100%;'>
-          <div class="section-title">✅ REPRODUCIBILITY SCORE</div>
-          <div class="repro-score">
-            <span class="score-number">{score}</span>
-            <span class="score-max"> / 10</span>
-            <div class="score-label">(0-10 scale)</div>
-          </div>
-          <div class="metric-row">
-            <div class="metric-item">
-              <div class="metric-value">{analysis['code_availability']}</div>
-              <div class="metric-label">CODE AVAILABILITY</div>
-            </div>
-            <div class="metric-item">
-              <div class="metric-value">{analysis['datasets']}</div>
-              <div class="metric-label">DATASETS</div>
-            </div>
-            <div class="metric-item">
-              <div class="metric-value">{analysis['methodology_clarity']}</div>
-              <div class="metric-label">METHODOLOGY CLARITY</div>
-            </div>
-          </div>
-          <div style='margin-top:14px; font-size:11px; color:#64748B; line-height:1.6;'>
-            Code: <a href="{analysis['code_link']}" style='color:#2563EB;'>{analysis['code_link']}</a><br/>
-            Data: <a href="{analysis['data_link']}" style='color:#2563EB;'>{analysis['data_link']}</a>
+        <div class="section-card">
+          <div class="section-title">🔬 재현성 분석</div>
+          <div style='font-size:13px; color:#334155; line-height:1.8;'>
+            <b>데이터셋:</b> {repro.get('dataset_status', '-')}<br/>
+            <b>방법론 상세도:</b> {repro.get('method_detail_level', '-')[:200]}{'...' if len(repro.get('method_detail_level','')) > 200 else ''}<br/>
+            <b>코드 공개:</b> {repro.get('code_availability', '-')}
           </div>
         </div>
         """, unsafe_allow_html=True)
+
+    # 난이도 + 검색 키워드
+    diff_col, query_col = st.columns([1, 1])
+
+    with diff_col:
+        if "difficulty" in analysis:
+            diff = analysis["difficulty"]
+            level = diff.get("level", "-")
+            level_color = {"Beginner": "#15803D", "Intermediate": "#A16207", "Advanced": "#DC2626"}.get(level, "#64748B")
+            knowledge_html = "".join(
+                f"<span style='background:#F1F5F9; color:#475569; padding:2px 8px; border-radius:10px; font-size:11px; margin:2px; display:inline-block;'>{k}</span>"
+                for k in diff.get("required_knowledge", [])
+            )
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">📊 논문 난이도</div>
+              <div style='text-align:center; margin-bottom:10px;'>
+                <span style='background:{level_color}; color:white; padding:4px 16px;
+                             border-radius:12px; font-size:14px; font-weight:700;'>{level}</span>
+              </div>
+              <div style='margin-bottom:6px; font-size:11px; color:#94A3B8;'>필요 배경지식</div>
+              <div>{knowledge_html}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    with query_col:
+        if "search_queries" in analysis:
+            queries = analysis["search_queries"]
+            queries_html = "".join(
+                f"<div style='background:#EFF6FF; color:#2563EB; padding:5px 10px; border-radius:6px; font-size:12px; margin-bottom:6px;'>🔍 {q}</div>"
+                for q in queries
+            )
+            st.markdown(f"""
+            <div class="section-card">
+              <div class="section-title">🔎 관련 검색어</div>
+              {queries_html}
+            </div>
+            """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -377,9 +438,7 @@ def render_analysis_panel():
         </div>
         """, unsafe_allow_html=True)
 
-        if not has_api_key:
-            st.warning("AI 분석을 사용하려면 OPENAI_API_KEY 환경변수를 설정해주세요.\n\n터미널에서: `export OPENAI_API_KEY='sk-...'`")
-        elif pdf_analysis and "error" in pdf_analysis:
+        if pdf_analysis and "error" in pdf_analysis:
             st.error(f"AI 분석 오류: {pdf_analysis['error']}")
         return
 
