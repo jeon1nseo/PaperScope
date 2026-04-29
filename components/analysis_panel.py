@@ -237,29 +237,59 @@ DUMMY_ANALYSIS = {
 }
 
 
+def _clean(text: str) -> str:
+    import re
+    import html
+    text = re.sub(r'<[^>]+>', '', str(text))
+    return html.escape(text).strip()
+
+
+def _make_panel_thumbnail(visual: dict, title: str = "", authors: str = "") -> str:
+    c1, c2 = visual["color"]
+    img_b64 = visual.get("thumbnail")
+    if img_b64:
+        return f"<img src='data:image/png;base64,{img_b64}' style='width:110px; min-width:110px; height:140px; object-fit:cover; object-position:top; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.15);'/>"
+    short_title = title[:80] + "..." if len(title) > 80 else title
+    short_authors = authors[:40] + "..." if len(authors) > 40 else authors
+    return f"""
+    <div style='
+        background:white; border:1px solid #E2E8F0;
+        border-radius:12px; min-width:110px; width:110px; height:140px;
+        overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.10);
+        padding:10px;
+        display:flex; flex-direction:column; justify-content:flex-start;
+    '>
+        <div style='font-size:7.5px; font-weight:700; color:#1E293B; line-height:1.5; margin-bottom:8px; word-break:break-word;'>{short_title}</div>
+        <div style='height:1px; background:#E2E8F0; margin-bottom:6px;'></div>
+        <div style='font-size:6px; color:#64748B; line-height:1.5;'>{short_authors}</div>
+    </div>"""
+
+
 def _render_analysis(analysis: dict, visual: dict):
     c1, c2 = visual["color"]
-    icon = visual["icon"]
+    title = analysis.get('title', '')
+    authors = analysis.get('authors', '')
+    thumb_html = _make_panel_thumbnail(visual, title, authors)
 
     # 헤더
-    st.markdown(f"""
-    <div style='background:white; border-radius:12px; padding:24px;
-                box-shadow:0 2px 8px rgba(0,0,0,0.08);'>
-      <div style='display:flex; gap:20px; align-items:flex-start; margin-bottom:20px;'>
-        <div style='
-            background: linear-gradient(135deg, #{c1}, #{c2});
-            border-radius:12px; min-width:110px; height:140px;
-            display:flex; align-items:center; justify-content:center;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        '>
-          <span style='font-size:48px;'>{icon}</span>
-        </div>
-        <div style='flex:1;'>
+    thumbnail_b64 = visual.get("thumbnail")
+    thumb_col, info_col = st.columns([1, 2.5])
+
+    with thumb_col:
+        if thumbnail_b64:
+            import base64
+            st.image(base64.b64decode(thumbnail_b64), use_container_width=True)
+        else:
+            st.markdown(thumb_html, unsafe_allow_html=True)
+
+    with info_col:
+        st.markdown(f"""
+        <div style='padding-top:4px;'>
           <div style='font-size:12px; color:#2563EB; font-weight:600; margin-bottom:6px;'>
             ✨ AI-Powered Paper Analysis
           </div>
-          <div style='font-size:16px; font-weight:700; color:#1E293B; line-height:1.5; margin-bottom:12px;'>
-            {analysis.get('title', '')}
+          <div style='font-size:15px; font-weight:700; color:#1E293B; line-height:1.5; margin-bottom:12px;'>
+            {_clean(analysis.get('title', ''))}
           </div>
           <div style='display:flex; gap:8px; flex-wrap:wrap;'>
             <span style='background:#EFF6FF; color:#2563EB; padding:3px 10px;
@@ -268,14 +298,17 @@ def _render_analysis(analysis: dict, visual: dict):
                          border-radius:12px; font-size:11px; font-weight:600;'>✅ 분석 완료</span>
           </div>
         </div>
-      </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
     # 요약
+    summary_text = _clean(analysis.get('summary', ''))
+    summary_html = summary_text if summary_text else "<span style='color:#94A3B8;'>요약 정보가 없습니다.</span>"
     st.markdown(f"""
       <div class="section-card">
         <div class="section-title">📋 논문 요약</div>
-        <div style='font-size:13px; color:#334155; line-height:1.7;'>{analysis.get('summary', '')}</div>
+        <div style='font-size:13px; color:#334155; line-height:1.7;'>{summary_html}</div>
       </div>
     """, unsafe_allow_html=True)
 
@@ -284,7 +317,7 @@ def _render_analysis(analysis: dict, visual: dict):
 
     with contrib_col:
         contributions_html = "".join(
-            f"<li style='margin-bottom:6px; color:#334155; font-size:13px;'>{c}</li>"
+            f"<li style='margin-bottom:6px; color:#334155; font-size:13px;'>{_clean(c)}</li>"
             for c in analysis.get("contributions", [])
         )
         st.markdown(f"""
@@ -389,7 +422,6 @@ def _render_analysis(analysis: dict, visual: dict):
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_analysis_panel():
@@ -402,6 +434,7 @@ def render_analysis_panel():
                 st.session_state.pdf_text = ""
                 st.session_state.pdf_name = ""
                 st.session_state.pdf_analysis = None
+                st.session_state.pdf_first_page = None
                 st.rerun()
 
     # PDF 업로드 모드
@@ -411,7 +444,8 @@ def render_analysis_panel():
         pdf_analysis = st.session_state.get("pdf_analysis")
 
         if pdf_analysis and "error" not in pdf_analysis:
-            visual = {"color": ("2563EB", "7C3AED"), "icon": "📄"}
+            img_b64 = st.session_state.get("pdf_first_page")
+            visual = {"color": ("2563EB", "7C3AED"), "icon": "📄", "thumbnail": img_b64}
             _render_analysis(pdf_analysis, visual)
             return
 

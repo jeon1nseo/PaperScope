@@ -1,5 +1,6 @@
+import io
 import streamlit as st
-from utils.pdf_parser import extract_text_from_pdf
+from utils.pdf_parser import extract_text_from_pdf, extract_first_page_image
 from utils.ai_analyzer import analyze_paper_with_ai
 
 DUMMY_PAPERS = [
@@ -130,16 +131,24 @@ ALL_FIELDS = sorted(set(p["field"] for p in DUMMY_PAPERS))
 ALL_YEARS = sorted(set(p["year"] for p in DUMMY_PAPERS), reverse=True)
 
 
-def _thumbnail(color_start, color_end, icon):
+def _thumbnail(title, authors, color_start, color_end):
+    short_title = title[:55] + "..." if len(title) > 55 else title
+    short_authors = authors[:30] + "..." if len(authors) > 30 else authors
     return f"""
     <div style='
-        background: linear-gradient(135deg, #{color_start}, #{color_end});
+        background: white;
+        border: 1px solid #E2E8F0;
         border-radius: 8px;
         width: 72px; min-width: 72px; height: 88px;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+        display: flex; flex-direction: column;
+        flex-shrink: 0;
+        padding: 6px;
     '>
-        <span style='font-size:32px;'>{icon}</span>
+        <div style='font-size:5.5px; font-weight:700; color:#1E293B; line-height:1.45; margin-bottom:5px; word-break:break-word;'>{short_title}</div>
+        <div style='height:1px; background:#E2E8F0; margin-bottom:4px;'></div>
+        <div style='font-size:4.5px; color:#64748B; line-height:1.4;'>{short_authors}</div>
     </div>"""
 
 
@@ -157,10 +166,13 @@ def render_paper_list():
         if uploaded is not None:
             if st.session_state.get("pdf_name") != uploaded.name:
                 with st.spinner("PDF 텍스트 추출 중..."):
-                    text = extract_text_from_pdf(uploaded)
+                    pdf_bytes = uploaded.read()
+                    text = extract_text_from_pdf(io.BytesIO(pdf_bytes))
+                    img_b64 = extract_first_page_image(pdf_bytes)
                     st.session_state.pdf_text = text
                     st.session_state.pdf_name = uploaded.name
                     st.session_state.pdf_analysis = None
+                    st.session_state.pdf_first_page = img_b64
 
                 if text.startswith("[오류]"):
                     st.error(text)
@@ -279,7 +291,7 @@ def render_paper_list():
             badge_cls = BADGE_CLASS.get(paper["q_level"], "badge-q2")
             is_selected = st.session_state.selected_paper == paper["id"]
             card_cls = "paper-card selected" if is_selected else "paper-card"
-            thumb = _thumbnail(paper["color"][0], paper["color"][1], paper["icon"])
+            thumb = _thumbnail(paper["title"], paper["authors"], paper["color"][0], paper["color"][1])
 
             st.markdown(f"""
             <div class="{card_cls}" style='display:flex; gap:14px; align-items:flex-start;'>
