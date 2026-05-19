@@ -1,155 +1,25 @@
+import html
 import io
 import streamlit as st
 from utils.pdf_parser import extract_text_from_pdf, extract_first_page_image
 from utils.ai_analyzer import analyze_paper_with_ai
-
-DUMMY_PAPERS = [
-    {
-        "id": 1,
-        "title": "Transformers for Large-Scale Text Classification: A Survey",
-        "authors": "A. Sharma, J. Lee, et al.",
-        "citations": 2456,
-        "q_level": "Q1",
-        "journal": "Computer Vision and Pattern Recognition",
-        "field": "NLP",
-        "year": 2023,
-        "color": ("2563EB", "7C3AED"),
-        "icon": "🤖",
-    },
-    {
-        "id": 2,
-        "title": "Self-Supervised Learning in Medical Imaging",
-        "authors": "A. Sharma, A. Lee, et al.",
-        "citations": 1120,
-        "q_level": "Q2",
-        "journal": "Medical Informatics",
-        "field": "의료 AI",
-        "year": 2022,
-        "color": ("059669", "0891B2"),
-        "icon": "🧬",
-    },
-    {
-        "id": 3,
-        "title": "Efficient Neural Architecture Search for Edge Devices",
-        "authors": "A. Sharma, J. Lee, et al.",
-        "citations": 2456,
-        "q_level": "Q2",
-        "journal": "Computer Vision and AI Recognition",
-        "field": "컴퓨터 비전",
-        "year": 2023,
-        "color": ("D97706", "DC2626"),
-        "icon": "⚡",
-    },
-    {
-        "id": 4,
-        "title": "Diffusion Models for Image Synthesis: A Comprehensive Review",
-        "authors": "B. Kim, C. Park, et al.",
-        "citations": 3812,
-        "q_level": "Q1",
-        "journal": "Neural Information Processing Systems",
-        "field": "생성 AI",
-        "year": 2023,
-        "color": ("7C3AED", "DB2777"),
-        "icon": "🎨",
-    },
-    {
-        "id": 5,
-        "title": "Graph Neural Networks in Drug Discovery",
-        "authors": "D. Choi, E. Jung, et al.",
-        "citations": 987,
-        "q_level": "Q3",
-        "journal": "Bioinformatics",
-        "field": "의료 AI",
-        "year": 2022,
-        "color": ("0369A1", "059669"),
-        "icon": "💊",
-    },
-    {
-        "id": 6,
-        "title": "CLIP: Learning Transferable Visual Models From Natural Language",
-        "authors": "A. Radford, J. Kim, et al.",
-        "citations": 8921,
-        "q_level": "Q1",
-        "journal": "International Conference on Machine Learning",
-        "field": "컴퓨터 비전",
-        "year": 2021,
-        "color": ("0EA5E9", "6366F1"),
-        "icon": "👁️",
-    },
-    {
-        "id": 7,
-        "title": "Attention Is All You Need",
-        "authors": "A. Vaswani, N. Shazeer, et al.",
-        "citations": 62340,
-        "q_level": "Q1",
-        "journal": "Advances in Neural Information Processing Systems",
-        "field": "NLP",
-        "year": 2017,
-        "color": ("F59E0B", "EF4444"),
-        "icon": "✨",
-    },
-    {
-        "id": 8,
-        "title": "LoRA: Low-Rank Adaptation of Large Language Models",
-        "authors": "E. Hu, Y. Shen, et al.",
-        "citations": 5678,
-        "q_level": "Q1",
-        "journal": "International Conference on Learning Representations",
-        "field": "NLP",
-        "year": 2022,
-        "color": ("10B981", "3B82F6"),
-        "icon": "🔧",
-    },
-    {
-        "id": 9,
-        "title": "Segment Anything Model for Medical Image Segmentation",
-        "authors": "M. Chen, L. Wang, et al.",
-        "citations": 432,
-        "q_level": "Q2",
-        "journal": "Medical Image Analysis",
-        "field": "의료 AI",
-        "year": 2024,
-        "color": ("EC4899", "8B5CF6"),
-        "icon": "🏥",
-    },
-    {
-        "id": 10,
-        "title": "Reinforcement Learning from Human Feedback for Code Generation",
-        "authors": "S. Park, H. Yoon, et al.",
-        "citations": 234,
-        "q_level": "Q3",
-        "journal": "Empirical Software Engineering",
-        "field": "강화학습",
-        "year": 2024,
-        "color": ("64748B", "334155"),
-        "icon": "💻",
-    },
-]
+from utils.paper_search import search_papers
 
 BADGE_CLASS = {"Q1": "badge-q1", "Q2": "badge-q2", "Q3": "badge-q3"}
-ALL_FIELDS = sorted(set(p["field"] for p in DUMMY_PAPERS))
-ALL_YEARS = sorted(set(p["year"] for p in DUMMY_PAPERS), reverse=True)
 
 
 def _thumbnail(title, authors, color_start, color_end):
-    short_title = title[:55] + "..." if len(title) > 55 else title
-    short_authors = authors[:30] + "..." if len(authors) > 30 else authors
-    return f"""
-    <div style='
-        background: white;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        width: 72px; min-width: 72px; height: 88px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-        display: flex; flex-direction: column;
-        flex-shrink: 0;
-        padding: 6px;
-    '>
-        <div style='font-size:5.5px; font-weight:700; color:#1E293B; line-height:1.45; margin-bottom:5px; word-break:break-word;'>{short_title}</div>
-        <div style='height:1px; background:#E2E8F0; margin-bottom:4px;'></div>
-        <div style='font-size:4.5px; color:#64748B; line-height:1.4;'>{short_authors}</div>
-    </div>"""
+    t = html.escape(title[:55] + "..." if len(title) > 55 else title)
+    a = html.escape(authors[:30] + "..." if len(authors) > 30 else authors)
+    return (
+        f"<div style='background:white;border:1px solid #E2E8F0;border-radius:8px;"
+        f"width:72px;min-width:72px;height:88px;overflow:hidden;"
+        f"box-shadow:0 2px 8px rgba(0,0,0,0.10);display:flex;flex-direction:column;padding:6px;'>"
+        f"<div style='font-size:5.5px;font-weight:700;color:#1E293B;line-height:1.45;margin-bottom:5px;word-break:break-word;'>{t}</div>"
+        f"<div style='height:1px;background:#E2E8F0;margin-bottom:4px;'></div>"
+        f"<div style='font-size:4.5px;color:#64748B;line-height:1.4;'>{a}</div>"
+        f"</div>"
+    )
 
 
 def render_paper_list():
@@ -200,114 +70,139 @@ def render_paper_list():
 
     # ── 논문 목록 탭 ───────────────────────────────────────────
     with tab_browse:
-        # 검색창
-        search_query = st.text_input(
-            "검색",
-            placeholder="🔍  제목, 저자, 저널로 검색...",
-            label_visibility="collapsed",
-            key="paper_search",
-        )
+        # 세션 상태 초기화
+        if "search_results" not in st.session_state:
+            st.session_state.search_results = []
+        if "last_search_query" not in st.session_state:
+            st.session_state.last_search_query = ""
+        if "search_error" not in st.session_state:
+            st.session_state.search_error = ""
 
-        # 필터 행
-        f1, f2, f3, f4 = st.columns(4)
-        with f1:
-            q_filter = st.selectbox(
-                "저널 등급",
-                ["전체", "Q1", "Q2", "Q3"],
-                key="filter_q",
+        # 검색창 + 버튼
+        sq_col, btn_col = st.columns([4, 1])
+        with sq_col:
+            search_query = st.text_input(
+                "검색",
+                placeholder="🔍  LLM, transformer, deep learning ...",
                 label_visibility="collapsed",
+                key="paper_search",
             )
-        with f2:
-            field_filter = st.selectbox(
-                "분야",
-                ["전체 분야"] + ALL_FIELDS,
-                key="filter_field",
-                label_visibility="collapsed",
-            )
-        with f3:
-            year_filter = st.selectbox(
-                "연도",
-                ["전체 연도"] + [str(y) for y in ALL_YEARS],
-                key="filter_year",
-                label_visibility="collapsed",
-            )
-        with f4:
-            sort_filter = st.selectbox(
-                "정렬",
-                ["인용수 높은순", "인용수 낮은순", "최신순", "오래된순"],
-                key="filter_sort",
-                label_visibility="collapsed",
-            )
+        with btn_col:
+            do_search = st.button("검색", use_container_width=True, type="primary")
 
-        # 필터 적용
-        filtered = DUMMY_PAPERS[:]
+        if do_search and search_query.strip():
+            if search_query.strip() != st.session_state.last_search_query:
+                with st.spinner("OpenAlex에서 논문 검색 중..."):
+                    results, err = search_papers(search_query.strip())
+                st.session_state.search_results = results
+                st.session_state.last_search_query = search_query.strip()
+                st.session_state.search_error = err or ""
+                st.rerun()
 
-        if search_query.strip():
-            q = search_query.lower()
-            filtered = [
-                p for p in filtered
-                if q in p["title"].lower()
-                or q in p["authors"].lower()
-                or q in p["journal"].lower()
-            ]
-        if q_filter != "전체":
-            filtered = [p for p in filtered if p["q_level"] == q_filter]
-        if field_filter != "전체 분야":
-            filtered = [p for p in filtered if p["field"] == field_filter]
-        if year_filter != "전체 연도":
-            filtered = [p for p in filtered if p["year"] == int(year_filter)]
+        if st.session_state.search_error:
+            st.warning(st.session_state.search_error)
 
-        # 정렬 적용
-        if sort_filter == "인용수 높은순":
-            filtered.sort(key=lambda p: p["citations"], reverse=True)
-        elif sort_filter == "인용수 낮은순":
-            filtered.sort(key=lambda p: p["citations"])
-        elif sort_filter == "최신순":
-            filtered.sort(key=lambda p: p["year"], reverse=True)
-        elif sort_filter == "오래된순":
-            filtered.sort(key=lambda p: p["year"])
+        papers_pool = st.session_state.search_results
 
-        # 헤더
-        h_col, c_col = st.columns([2, 1])
-        with h_col:
-            st.markdown(
-                f"<span style='font-weight:700; font-size:15px; color:#1E293B;'>논문 목록</span>",
-                unsafe_allow_html=True,
-            )
-        with c_col:
-            st.markdown(
-                f"<span style='font-size:12px; color:#94A3B8; float:right;'>{len(filtered)}개 결과</span>",
-                unsafe_allow_html=True,
-            )
-
-        if not filtered:
-            st.markdown(
-                "<div style='text-align:center; color:#94A3B8; padding:40px 0;'>검색 결과가 없습니다.</div>",
-                unsafe_allow_html=True,
-            )
-
-        # 논문 카드
-        for paper in filtered:
-            badge_cls = BADGE_CLASS.get(paper["q_level"], "badge-q2")
-            is_selected = st.session_state.selected_paper == paper["id"]
-            card_cls = "paper-card selected" if is_selected else "paper-card"
-            thumb = _thumbnail(paper["title"], paper["authors"], paper["color"][0], paper["color"][1])
-
-            st.markdown(f"""
-            <div class="{card_cls}" style='display:flex; gap:14px; align-items:flex-start;'>
-              {thumb}
-              <div style='flex:1; min-width:0;'>
-                <div class="paper-title">{paper['title']}</div>
-                <div class="paper-authors">👥 {paper['authors']}</div>
-                <div class="paper-meta">
-                  <span class="paper-citations">⭐ {paper['citations']:,} citations</span>
-                  <span class="{badge_cls}">{paper['q_level']}</span>
-                  <span style="color:#64748B; font-size:11px;">{paper['field']} · {paper['year']}</span>
-                </div>
-              </div>
+        if not papers_pool:
+            st.markdown("""
+            <div style='text-align:center; color:#94A3B8; padding:40px 0;'>
+              <div style='font-size:32px; margin-bottom:8px;'>🔍</div>
+              <div style='font-size:14px; font-weight:600;'>키워드를 입력하고 검색 버튼을 눌러주세요</div>
+              <div style='font-size:12px; margin-top:4px;'>예: LLM, transformer, computer vision</div>
             </div>
             """, unsafe_allow_html=True)
+        else:
+            # 동적 필터 옵션
+            all_fields = sorted(set(p["field"] for p in papers_pool))
+            all_years = sorted(set(p["year"] for p in papers_pool), reverse=True)
 
-            if st.button("📊 AI 분석", key=f"analyze_{paper['id']}", use_container_width=True):
-                st.session_state.selected_paper = paper["id"]
-                st.rerun()
+            # 필터 행
+            f1, f2, f3, f4 = st.columns(4)
+            with f1:
+                q_filter = st.selectbox(
+                    "저널 등급",
+                    ["전체", "Q1", "Q2", "Q3", "Unknown"],
+                    key="filter_q",
+                    label_visibility="collapsed",
+                )
+            with f2:
+                field_filter = st.selectbox(
+                    "분야",
+                    ["전체 분야"] + all_fields,
+                    key="filter_field",
+                    label_visibility="collapsed",
+                )
+            with f3:
+                year_filter = st.selectbox(
+                    "연도",
+                    ["전체 연도"] + [str(y) for y in all_years],
+                    key="filter_year",
+                    label_visibility="collapsed",
+                )
+            with f4:
+                sort_filter = st.selectbox(
+                    "정렬",
+                    ["관련도순", "인용수 높은순", "인용수 낮은순", "최신순", "오래된순"],
+                    key="filter_sort",
+                    label_visibility="collapsed",
+                )
+
+            # 필터 적용
+            filtered = papers_pool[:]
+            if q_filter != "전체":
+                filtered = [p for p in filtered if p["q_level"] == q_filter]
+            if field_filter != "전체 분야":
+                filtered = [p for p in filtered if p["field"] == field_filter]
+            if year_filter != "전체 연도":
+                filtered = [p for p in filtered if p["year"] == int(year_filter)]
+
+            if sort_filter == "관련도순":
+                filtered.sort(key=lambda p: p["score"], reverse=True)
+            elif sort_filter == "인용수 높은순":
+                filtered.sort(key=lambda p: p["citations"], reverse=True)
+            elif sort_filter == "인용수 낮은순":
+                filtered.sort(key=lambda p: p["citations"])
+            elif sort_filter == "최신순":
+                filtered.sort(key=lambda p: p["year"], reverse=True)
+            elif sort_filter == "오래된순":
+                filtered.sort(key=lambda p: p["year"])
+
+            # 헤더
+            h_col, c_col = st.columns([2, 1])
+            with h_col:
+                st.markdown(
+                    f"<span style='font-weight:700; font-size:15px; color:#1E293B;'>검색 결과: <b>{st.session_state.last_search_query}</b></span>",
+                    unsafe_allow_html=True,
+                )
+            with c_col:
+                st.markdown(
+                    f"<span style='font-size:12px; color:#94A3B8; float:right;'>{len(filtered)}개 결과</span>",
+                    unsafe_allow_html=True,
+                )
+
+            if not filtered:
+                st.markdown(
+                    "<div style='text-align:center; color:#94A3B8; padding:40px 0;'>필터 조건에 맞는 논문이 없습니다.</div>",
+                    unsafe_allow_html=True,
+                )
+
+            # 논문 카드
+            for paper in filtered:
+                is_selected = st.session_state.selected_paper == paper["id"]
+                with st.container(border=True):
+                    thumb_col, info_col = st.columns([1, 5])
+                    with thumb_col:
+                        thumb = _thumbnail(paper["title"], paper["authors"], paper["color"][0], paper["color"][1])
+                        st.markdown(thumb, unsafe_allow_html=True)
+                    with info_col:
+                        q = paper["q_level"]
+                        scie = "🔵 SCIE" if paper.get("scie") == "Yes" else ""
+                        q_label = {"Q1": "🟢 Q1", "Q2": "🟡 Q2", "Q3": "🟠 Q3"}.get(q, "")
+                        st.markdown(f"**{paper['title']}**")
+                        st.caption(f"👥 {paper['authors']}")
+                        st.caption(f"⭐ {paper['citations']:,} citations　　{q_label}　{scie}　　{paper['field']} · {paper['year']}")
+                    if st.button("📊 논문 상세보기", key=f"analyze_{paper['id']}", use_container_width=True):
+                        st.session_state.selected_paper = paper["id"]
+                        st.session_state.selected_real_paper = paper
+                        st.rerun()

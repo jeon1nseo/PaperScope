@@ -31,6 +31,8 @@ if "pdf_name" not in st.session_state:
     st.session_state.pdf_name = ""
 if "pdf_analysis" not in st.session_state:
     st.session_state.pdf_analysis = None
+if "selected_real_paper" not in st.session_state:
+    st.session_state.selected_real_paper = None
 
 # ── 인증 페이지 ──────────────────────────────────────
 if not st.session_state.logged_in:

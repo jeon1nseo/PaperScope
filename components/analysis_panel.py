@@ -424,6 +424,63 @@ def _render_analysis(analysis: dict, visual: dict):
 
 
 
+def _render_real_paper(paper: dict):
+    """OpenAlex에서 가져온 실제 논문 표시."""
+    import html as _html
+
+    thumb_col, info_col = st.columns([1, 2.5])
+    with thumb_col:
+        visual = {"color": paper.get("color", ("2563EB", "7C3AED")), "icon": paper.get("icon", "📄")}
+        t = _html.escape(paper["title"][:80] + "..." if len(paper["title"]) > 80 else paper["title"])
+        a = _html.escape(paper["authors"][:40] + "..." if len(paper["authors"]) > 40 else paper["authors"])
+        thumb = (
+            f"<div style='background:white;border:1px solid #E2E8F0;border-radius:12px;"
+            f"min-width:110px;width:110px;height:140px;overflow:hidden;"
+            f"box-shadow:0 4px 16px rgba(0,0,0,0.10);padding:10px;"
+            f"display:flex;flex-direction:column;justify-content:flex-start;'>"
+            f"<div style='font-size:7.5px;font-weight:700;color:#1E293B;line-height:1.5;margin-bottom:8px;word-break:break-word;'>{t}</div>"
+            f"<div style='height:1px;background:#E2E8F0;margin-bottom:6px;'></div>"
+            f"<div style='font-size:6px;color:#64748B;line-height:1.5;'>{a}</div>"
+            f"</div>"
+        )
+        st.markdown(thumb, unsafe_allow_html=True)
+
+    with info_col:
+        st.caption("🌐 OpenAlex 논문")
+        st.markdown(f"**{_clean(paper['title'])}**")
+        q = paper.get("q_level", "")
+        q_label = {"Q1": "🟢 Q1", "Q2": "🟡 Q2", "Q3": "🟠 Q3"}.get(q, "")
+        scie = "🔵 SCIE" if paper.get("scie") == "Yes" else ""
+        st.caption(f"{q_label}　{scie}　{paper.get('field','')}　{paper.get('year','')}")
+
+    st.divider()
+
+    # 저널 정보
+    sjr = paper.get("sjr_score", "")
+    sjr_text = f" · SJR {sjr}" if sjr and sjr not in ("", "정보 없음") else ""
+    st.markdown("**📰 저널 정보**")
+    st.markdown(
+        f"저널: {_clean(paper.get('journal',''))}{sjr_text}  \n"
+        f"인용수: {paper.get('citations',0):,}회 · 연도: {paper.get('year','')}"
+    )
+
+    # 초록
+    abstract = paper.get("abstract", "")
+    if abstract:
+        st.markdown("**📋 초록**")
+        st.markdown(_clean(abstract[:1200]) + ("..." if len(abstract) > 1200 else ""))
+
+    # 링크
+    doi = paper.get("doi", "")
+    pdf_url = paper.get("pdf_url", "")
+    if doi and doi != "DOI 없음":
+        st.link_button("🔗 DOI 열기", doi)
+    if pdf_url:
+        st.link_button("📄 PDF 다운로드", pdf_url)
+
+    st.info("💡 AI 분석을 원하시면 왼쪽 PDF 업로드 탭에서 논문 PDF를 업로드해주세요.")
+
+
 def render_analysis_panel():
     # 닫기 버튼 (논문 선택된 경우)
     if st.session_state.selected_paper is not None:
@@ -431,11 +488,18 @@ def render_analysis_panel():
         with close_col:
             if st.button("✕ 닫기", key="close_panel"):
                 st.session_state.selected_paper = None
+                st.session_state.selected_real_paper = None
                 st.session_state.pdf_text = ""
                 st.session_state.pdf_name = ""
                 st.session_state.pdf_analysis = None
                 st.session_state.pdf_first_page = None
                 st.rerun()
+
+    # 실제 논문 (OpenAlex 검색 결과) 모드
+    real_paper = st.session_state.get("selected_real_paper")
+    if real_paper and st.session_state.selected_paper == real_paper.get("id"):
+        _render_real_paper(real_paper)
+        return
 
     # PDF 업로드 모드
     if st.session_state.selected_paper == "pdf":
