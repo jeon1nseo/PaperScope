@@ -84,6 +84,158 @@ def _normalize_quartile(q: str) -> str:
     return "Unknown"
 
 
+PRIORITY_KEYWORDS = [
+    "transformer", "attention", "self-attention", "machine translation",
+    "sequence transduction", "natural language processing", "nlp",
+    "deep learning", "neural network", "large language model", "llm", "machine learning",
+]
+
+
+def _search_openalex_raw(query: str, mode: str, max_results: int = 50) -> list[dict]:
+    """OpenAlex 원시 검색 (내부용). 파싱된 논문 리스트 반환."""
+    url = f"https://api.openalex.org/works?search={urllib.parse.quote(query)}&per-page={max_results}"
+    try:
+        resp = requests.get(url, timeout=15)
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+    except requests.exceptions.RequestException:
+        return []
+
+    papers = []
+    for i, p in enumerate(data.get("results", [])):
+        title = p.get("title", "")
+        if not title:
+            continue
+        year = p.get("publication_year") or 0
+        if year < 2020:
+            continue
+
+        abstract = _restore_abstract(p.get("abstract_inverted_index"))
+        if not abstract and mode != "title":
+            continue
+
+        text = (title + " " + abstract).lower()
+        if mode in ("keyword", "related"):
+            if not any(kw in text for kw in ALLOWED_KEYWORDS):
+                continue
+
+        cited = p.get("cited_by_count") or 0
+        doi = p.get("doi") or "DOI 없음"
+        openalex_url = p.get("id", f"paper_{i}")
+
+        journal, issn_list, pdf_url = "저널 없음", [], ""
+        loc = p.get("primary_location")
+        if loc:
+            src = loc.get("source")
+            if src:
+                journal = src.get("display_name", "저널 없음")
+                issn_list = src.get("issn") or []
+            pdf_url = loc.get("pdf_url") or ""
+
+        rank = _find_rank(issn_list)
+        q_level = _normalize_quartile(rank["quartile"])
+
+        authorships = p.get("authorships", [])
+        authors_list = [
+            a["author"]["display_name"]
+            for a in authorships[:5]
+            if a.get("author", {}).get("display_name")
+        ] or ["저자 없음"]
+        authors_str = ", ".join(authors_list[:3])
+        if len(authors_list) > 3:
+            authors_str += ", et al."
+
+        colors, icon, field = _field_visual(title, abstract)
+
+        q_lower = query.lower()
+        score = (5 if q_lower in title.lower() else 0) + abstract.lower().count(q_lower) + cited // 1000
+        if mode == "title":
+            query_words = set(q_lower.split())
+            title_words = set(title.lower().split())
+            if query_words:
+                score += len(query_words & title_words)
+            if q_lower == title.lower():
+                score += 20
+
+        papers.append({
+            "id": openalex_url,
+            "title": title,
+            "authors": authors_str,
+            "authors_list": authors_list,
+            "citations": cited,
+            "q_level": q_level,
+            "journal": journal,
+            "field": field,
+            "year": year,
+            "color": colors,
+            "icon": icon,
+            "doi": doi,
+            "pdf_url": pdf_url,
+            "abstract": abstract,
+            "scie": rank["scie"],
+            "sjr_score": rank["sjr_score"],
+            "score": score,
+        })
+
+    papers.sort(key=lambda x: x["score"], reverse=True)
+    return papers
+
+
+def extract_keywords_from_abstract(abstract: str) -> list[str]:
+    """초록에서 AI 관련 핵심 키워드 추출 (최대 5개)."""
+    abstract_lower = abstract.lower()
+    found = [kw for kw in ALLOWED_KEYWORDS if kw in abstract_lower]
+
+    sorted_kws = [kw for kw in PRIORITY_KEYWORDS if kw in found]
+    sorted_kws += [kw for kw in found if kw not in sorted_kws]
+    return sorted_kws[:5]
+
+
+def search_by_title(paper_title: str) -> tuple[dict | None, str | None]:
+    """
+    논문 제목으로 OpenAlex에서 원논문 메타데이터 조회.
+    (paper, error_message) 반환.
+    PDF 파싱 결과의 title을 넘기면 됨.
+    """
+    if not paper_title.strip():
+        return None, "논문 제목이 비어 있습니다."
+
+    results = _search_openalex_raw(paper_title, mode="title", max_results=50)
+    if not results:
+        return None, "OpenAlex에서 해당 논문을 찾지 못했습니다."
+
+    return results[0], None
+
+
+def search_related_papers(paper_title: str) -> tuple[list[dict], list[str], str | None]:
+    """
+    논문 제목 → 원논문 조회 → 초록 키워드 추출 → 관련 논문 10개 추천.
+    (related_papers, extracted_keywords, error_message) 반환.
+    """
+    original, err = search_by_title(paper_title)
+    if err:
+        return [], [], err
+
+    keywords = extract_keywords_from_abstract(original.get("abstract", ""))
+    if not keywords:
+        return [], [], "초록에서 AI 관련 키워드를 찾지 못했습니다."
+
+    seen = set()
+    related = []
+    for kw in keywords:
+        for p in _search_openalex_raw(kw, mode="related", max_results=20):
+            key = p["title"].lower()
+            if key == paper_title.lower() or key in seen:
+                continue
+            seen.add(key)
+            p["related_keyword"] = kw
+            related.append(p)
+
+    related.sort(key=lambda x: (x["score"], x["citations"]), reverse=True)
+    return related[:10], keywords, None
+
+
 def search_papers(query: str, max_results: int = 50) -> tuple[list[dict], str | None]:
     """OpenAlex에서 논문 검색. (papers, error_message) 반환."""
     q = query.strip().lower()
