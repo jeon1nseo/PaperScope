@@ -53,12 +53,14 @@ def render_paper_list():
         )
 
         if uploaded is not None:
-            if st.session_state.get("pdf_name") != uploaded.name:
+            cache_key = f"{uploaded.name}_{selected_engine}"
+            if st.session_state.get("pdf_cache_key") != cache_key:
                 pdf_bytes = uploaded.read()
 
                 with st.spinner("🤖 GROBID 엔진으로 논문 섹션 분리 중..."):
                     grobid_parsed = parse_pdf_via_grobid(pdf_bytes)
                     st.session_state.pdf_name = uploaded.name
+                    st.session_state.pdf_cache_key = cache_key
                     st.session_state.pdf_analysis = None
                     st.session_state.pdf_first_page = None
 

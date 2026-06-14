@@ -142,24 +142,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 상단 네비게이션 바
-nav_col, user_col = st.columns([6, 1])
+nav_col, btn_col1, btn_col2 = st.columns([5, 1, 1])
 with nav_col:
     st.markdown("""
     <div class="nav-bar">
       <div class="nav-logo">📄 PaperScope</div>
     </div>
     """, unsafe_allow_html=True)
-with user_col:
+with btn_col1:
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     nickname = st.session_state.user_nickname
-    if st.button(f"{nickname}  |  로그아웃", key="logout"):
+    if st.button(f"👤 {nickname}", key="go_profile", use_container_width=True):
+        st.session_state.page = "profile"
+        st.rerun()
+with btn_col2:
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    if st.button("로그아웃", key="logout", use_container_width=True):
         st.session_state.logged_in = False
         st.session_state.page = "login"
         st.session_state.user_email = ""
         st.session_state.user_nickname = ""
-        st.rerun()
-    if st.button("👤 마이페이지", key="go_profile"):
-        st.session_state.page = "profile"
         st.rerun()
 
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
