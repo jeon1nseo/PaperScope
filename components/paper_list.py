@@ -1,11 +1,21 @@
 import html
-import io
 import streamlit as st
-from utils.pdf_parser import extract_text_from_pdf, extract_first_page_image
-from utils.ai_analyzer import analyze_paper_with_ai
+from utils.ai_analyzer import parse_pdf_via_grobid, analyze_paper_with_runyour_ai
 from utils.paper_search import search_papers
 
 BADGE_CLASS = {"Q1": "badge-q1", "Q2": "badge-q2", "Q3": "badge-q3"}
+
+AVAILABLE_MODELS = [
+    "openai/gpt-4.1-2025-04-14",
+    "openai/gpt-5.4-mini-2026-03-17",
+    "openai/gpt-5.4-2026-03-05",
+    "openai/gpt-5.2",
+    "anthropic/claude-sonnet-4-6",
+    "anthropic/claude-opus-4-5",
+    "gemini/gemini-2.5-flash",
+    "gemini/gemini-2.5-pro",
+    "deepseek/deepseek-chat",
+]
 
 
 def _thumbnail(title, authors, color_start, color_end):
@@ -23,6 +33,15 @@ def _thumbnail(title, authors, color_start, color_end):
 
 
 def render_paper_list():
+    # 모델 선택
+    st.markdown("### 🎛️ AI 분석 모델 선택")
+    selected_engine = st.selectbox(
+        "사용할 모델을 선택하세요",
+        AVAILABLE_MODELS,
+        index=0,
+        help="RunyourAI를 통해 지원되는 모델입니다."
+    )
+
     tab_upload, tab_browse = st.tabs(["📂 PDF 업로드", "🔍 논문 목록"])
 
     # ── PDF 업로드 탭 ──────────────────────────────────────────
@@ -35,27 +54,26 @@ def render_paper_list():
 
         if uploaded is not None:
             if st.session_state.get("pdf_name") != uploaded.name:
-                with st.spinner("PDF 텍스트 추출 중..."):
-                    pdf_bytes = uploaded.read()
-                    text = extract_text_from_pdf(io.BytesIO(pdf_bytes))
-                    img_b64 = extract_first_page_image(pdf_bytes)
-                    st.session_state.pdf_text = text
+                pdf_bytes = uploaded.read()
+
+                with st.spinner("🤖 GROBID 엔진으로 논문 섹션 분리 중..."):
+                    grobid_parsed = parse_pdf_via_grobid(pdf_bytes)
                     st.session_state.pdf_name = uploaded.name
                     st.session_state.pdf_analysis = None
-                    st.session_state.pdf_first_page = img_b64
+                    st.session_state.pdf_first_page = None
 
-                if text.startswith("[오류]"):
-                    st.error(text)
+                if grobid_parsed is None:
+                    st.error("❌ GROBID 파싱 실패. Docker 서버(8070) 상태를 확인하세요.")
                 else:
-                    with st.spinner("AI 분석 중... (1~2분 소요)"):
-                        analysis = analyze_paper_with_ai(text)
+                    with st.spinner(f"📊 [{selected_engine}] 으로 AI 분석 중..."):
+                        analysis = analyze_paper_with_runyour_ai(grobid_parsed, model_id=selected_engine)
                         st.session_state.pdf_analysis = analysis
+
                     st.session_state.selected_paper = "pdf"
                     st.rerun()
             else:
-                st.success(f"✅ {uploaded.name} 업로드 완료!")
-                st.caption(f"추출된 텍스트: {len(st.session_state.pdf_text):,}자")
-                if st.button("📊 AI 분석 보기", use_container_width=True, type="primary"):
+                st.success(f"✅ {uploaded.name} 분석 완료!")
+                if st.button("📊 AI 심사 결과 보기", use_container_width=True, type="primary"):
                     st.session_state.selected_paper = "pdf"
                     st.rerun()
         else:
@@ -70,7 +88,6 @@ def render_paper_list():
 
     # ── 논문 목록 탭 ───────────────────────────────────────────
     with tab_browse:
-        # 세션 상태 초기화
         if "search_results" not in st.session_state:
             st.session_state.search_results = []
         if "last_search_query" not in st.session_state:
@@ -78,7 +95,6 @@ def render_paper_list():
         if "search_error" not in st.session_state:
             st.session_state.search_error = ""
 
-        # 검색창 + 버튼
         sq_col, btn_col = st.columns([4, 1])
         with sq_col:
             search_query = st.text_input(
@@ -113,42 +129,19 @@ def render_paper_list():
             </div>
             """, unsafe_allow_html=True)
         else:
-            # 동적 필터 옵션
             all_fields = sorted(set(p["field"] for p in papers_pool))
             all_years = sorted(set(p["year"] for p in papers_pool), reverse=True)
 
-            # 필터 행
             f1, f2, f3, f4 = st.columns(4)
             with f1:
-                q_filter = st.selectbox(
-                    "저널 등급",
-                    ["전체", "Q1", "Q2", "Q3", "Unknown"],
-                    key="filter_q",
-                    label_visibility="collapsed",
-                )
+                q_filter = st.selectbox("저널 등급", ["전체", "Q1", "Q2", "Q3", "Unknown"], key="filter_q", label_visibility="collapsed")
             with f2:
-                field_filter = st.selectbox(
-                    "분야",
-                    ["전체 분야"] + all_fields,
-                    key="filter_field",
-                    label_visibility="collapsed",
-                )
+                field_filter = st.selectbox("분야", ["전체 분야"] + all_fields, key="filter_field", label_visibility="collapsed")
             with f3:
-                year_filter = st.selectbox(
-                    "연도",
-                    ["전체 연도"] + [str(y) for y in all_years],
-                    key="filter_year",
-                    label_visibility="collapsed",
-                )
+                year_filter = st.selectbox("연도", ["전체 연도"] + [str(y) for y in all_years], key="filter_year", label_visibility="collapsed")
             with f4:
-                sort_filter = st.selectbox(
-                    "정렬",
-                    ["관련도순", "인용수 높은순", "인용수 낮은순", "최신순", "오래된순"],
-                    key="filter_sort",
-                    label_visibility="collapsed",
-                )
+                sort_filter = st.selectbox("정렬", ["관련도순", "인용수 높은순", "인용수 낮은순", "최신순", "오래된순"], key="filter_sort", label_visibility="collapsed")
 
-            # 필터 적용
             filtered = papers_pool[:]
             if q_filter != "전체":
                 filtered = [p for p in filtered if p["q_level"] == q_filter]
@@ -168,28 +161,16 @@ def render_paper_list():
             elif sort_filter == "오래된순":
                 filtered.sort(key=lambda p: p["year"])
 
-            # 헤더
             h_col, c_col = st.columns([2, 1])
             with h_col:
-                st.markdown(
-                    f"<span style='font-weight:700; font-size:15px; color:#1E293B;'>검색 결과: <b>{st.session_state.last_search_query}</b></span>",
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f"<span style='font-weight:700; font-size:15px; color:#1E293B;'>검색 결과: <b>{st.session_state.last_search_query}</b></span>", unsafe_allow_html=True)
             with c_col:
-                st.markdown(
-                    f"<span style='font-size:12px; color:#94A3B8; float:right;'>{len(filtered)}개 결과</span>",
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f"<span style='font-size:12px; color:#94A3B8; float:right;'>{len(filtered)}개 결과</span>", unsafe_allow_html=True)
 
             if not filtered:
-                st.markdown(
-                    "<div style='text-align:center; color:#94A3B8; padding:40px 0;'>필터 조건에 맞는 논문이 없습니다.</div>",
-                    unsafe_allow_html=True,
-                )
+                st.markdown("<div style='text-align:center; color:#94A3B8; padding:40px 0;'>필터 조건에 맞는 논문이 없습니다.</div>", unsafe_allow_html=True)
 
-            # 논문 카드
             for paper in filtered:
-                is_selected = st.session_state.selected_paper == paper["id"]
                 with st.container(border=True):
                     thumb_col, info_col = st.columns([1, 5])
                     with thumb_col:
@@ -201,7 +182,7 @@ def render_paper_list():
                         q_label = {"Q1": "🟢 Q1", "Q2": "🟡 Q2", "Q3": "🟠 Q3"}.get(q, "")
                         st.markdown(f"**{paper['title']}**")
                         st.caption(f"👥 {paper['authors']}")
-                        st.caption(f"⭐ {paper['citations']:,} citations　　{q_label}　{scie}　　{paper['field']} · {paper['year']}")
+                        st.caption(f"⭐ {paper['citations']:,} citations  {q_label} {scie}  {paper['field']} · {paper['year']}")
                     if st.button("📊 논문 상세보기", key=f"analyze_{paper['id']}", use_container_width=True):
                         st.session_state.selected_paper = paper["id"]
                         st.session_state.selected_real_paper = paper
