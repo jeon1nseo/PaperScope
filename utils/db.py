@@ -1,0 +1,62 @@
+from supabase import create_client
+
+SUPABASE_URL = "https://frzdkecysioylrfozvby.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZyemRrZWN5c2lveWxyZm96dmJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MDYxOTIsImV4cCI6MjA5Njk4MjE5Mn0.qBPS1HpkXv9XE892r_goiN5MyNlM4BCdrQAm2zc1ddU"
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+def get_bookmarks(user_email: str) -> list:
+    try:
+        res = supabase.table("bookmarks").select("*").eq("user_email", user_email).execute()
+        return res.data or []
+    except:
+        return []
+
+
+def add_bookmark(user_email: str, paper: dict):
+    try:
+        supabase.table("bookmarks").insert({
+            "user_email": user_email,
+            "paper_id": str(paper.get("id", "")),
+            "title": paper.get("title", ""),
+            "authors": paper.get("authors", ""),
+            "journal": paper.get("journal", ""),
+            "year": paper.get("year"),
+            "citations": paper.get("citations"),
+            "q_level": paper.get("q_level", ""),
+            "field": paper.get("field", ""),
+            "abstract": paper.get("abstract", ""),
+            "doi": paper.get("doi", ""),
+            "pdf_url": paper.get("pdf_url", ""),
+        }).execute()
+    except:
+        pass
+
+
+def remove_bookmark(user_email: str, paper_id: str):
+    try:
+        supabase.table("bookmarks").delete().eq("user_email", user_email).eq("paper_id", paper_id).execute()
+    except:
+        pass
+
+
+def get_pdf_history(user_email: str) -> list:
+    try:
+        res = supabase.table("pdf_history").select("*").eq("user_email", user_email).order("created_at", desc=True).execute()
+        return res.data or []
+    except:
+        return []
+
+
+def add_pdf_history(user_email: str, pdf_name: str, analysis: dict):
+    try:
+        supabase.table("pdf_history").insert({
+            "user_email": user_email,
+            "pdf_name": pdf_name,
+            "reliability_score": analysis.get("reliability_score"),
+            "reproducibility_score": analysis.get("reproducibility_score"),
+            "analysis": analysis,
+        }).execute()
+    except:
+        pass

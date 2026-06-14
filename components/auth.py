@@ -166,11 +166,12 @@ def render_login():
                 st.session_state.auth_error = "이메일과 비밀번호를 입력해주세요."
                 st.rerun()
             else:
-                # 임시: 아무 이메일/비밀번호나 허용 (추후 Firebase 연동)
+                nickname = email.split("@")[0]
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
-                st.session_state.user_nickname = email.split("@")[0]
+                st.session_state.user_nickname = nickname
                 st.session_state.page = "main"
+                st.session_state._save_cookie = True
                 st.rerun()
 
         forgot_col, _ = st.columns([1, 2])
@@ -236,11 +237,11 @@ def render_signup():
                 st.session_state.auth_error = "비밀번호는 8자 이상이어야 합니다."
                 st.rerun()
             else:
-                # 임시: 바로 로그인 처리 (추후 Firebase 연동)
                 st.session_state.logged_in = True
                 st.session_state.user_email = email
                 st.session_state.user_nickname = nickname
                 st.session_state.page = "main"
+                st.session_state._save_cookie = True
                 st.rerun()
 
         st.markdown("""

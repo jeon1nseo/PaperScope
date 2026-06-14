@@ -74,6 +74,10 @@ def render_paper_list():
                     # 분석 히스토리 저장
                     if "error" not in analysis:
                         from datetime import datetime
+                        from utils.db import add_pdf_history
+                        user_email = st.session_state.get("user_email", "")
+                        if user_email:
+                            add_pdf_history(user_email, uploaded.name, analysis)
                         history = st.session_state.get("pdf_history", [])
                         history.append({
                             "name": uploaded.name,
@@ -205,11 +209,17 @@ def render_paper_list():
                             st.session_state.selected_real_paper = paper
                             st.rerun()
                     with btn2:
+                        from utils.db import add_bookmark, remove_bookmark
                         bookmarks = st.session_state.get("bookmarks", [])
-                        is_bookmarked = any(p["id"] == paper["id"] for p in bookmarks)
+                        is_bookmarked = any(str(p.get("id","")) == str(paper["id"]) for p in bookmarks)
+                        user_email = st.session_state.get("user_email", "")
                         if st.button("★" if is_bookmarked else "☆", key=f"bm_{paper['id']}", use_container_width=True):
                             if is_bookmarked:
-                                st.session_state.bookmarks = [p for p in bookmarks if p["id"] != paper["id"]]
+                                if user_email:
+                                    remove_bookmark(user_email, str(paper["id"]))
+                                st.session_state.bookmarks = [p for p in bookmarks if str(p.get("id","")) != str(paper["id"])]
                             else:
+                                if user_email:
+                                    add_bookmark(user_email, paper)
                                 st.session_state.bookmarks = bookmarks + [paper]
                             st.rerun()

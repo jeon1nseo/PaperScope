@@ -1,8 +1,28 @@
 import streamlit as st
+import json, os
 from components.paper_list import render_paper_list
 from components.analysis_panel import render_analysis_panel
 from components.auth import render_login, render_signup, render_forgot_password
 from components.profile import render_profile
+
+SESSION_FILE = os.path.expanduser("~/.paperscope_session.json")
+
+def save_session(email, nickname):
+    with open(SESSION_FILE, "w") as f:
+        json.dump({"email": email, "nickname": nickname}, f)
+
+def load_session():
+    try:
+        with open(SESSION_FILE) as f:
+            return json.load(f)
+    except:
+        return None
+
+def clear_session():
+    try:
+        os.remove(SESSION_FILE)
+    except:
+        pass
 
 st.set_page_config(
     page_title="PaperScope",
@@ -10,6 +30,20 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# 로그인 후 파일 저장 요청이 있으면 저장
+if st.session_state.get("_save_cookie"):
+    save_session(st.session_state.user_email, st.session_state.user_nickname)
+    st.session_state._save_cookie = False
+
+# 파일에서 로그인 정보 복원 (세션이 없을 때만)
+if "logged_in" not in st.session_state:
+    saved = load_session()
+    if saved:
+        st.session_state.logged_in = True
+        st.session_state.user_email = saved["email"]
+        st.session_state.user_nickname = saved["nickname"]
+        st.session_state.page = "main"
 
 # 세션 상태 초기화
 if "page" not in st.session_state:
@@ -158,6 +192,7 @@ with btn_col1:
 with btn_col2:
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     if st.button("로그아웃", key="logout", use_container_width=True):
+        clear_session()
         st.session_state.logged_in = False
         st.session_state.page = "login"
         st.session_state.user_email = ""
