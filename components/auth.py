@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.db import supabase
 
 AUTH_CSS = """
 <style>
@@ -166,13 +167,19 @@ def render_login():
                 st.session_state.auth_error = "이메일과 비밀번호를 입력해주세요."
                 st.rerun()
             else:
-                nickname = email.split("@")[0]
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.session_state.user_nickname = nickname
-                st.session_state.page = "main"
-                st.session_state._save_cookie = True
-                st.rerun()
+                try:
+                    res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    user = res.user
+                    nickname = (user.user_metadata or {}).get("nickname") or email.split("@")[0]
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    st.session_state.user_nickname = nickname
+                    st.session_state.page = "main"
+                    st.session_state._save_cookie = True
+                    st.rerun()
+                except Exception as e:
+                    st.session_state.auth_error = "이메일 또는 비밀번호가 올바르지 않습니다."
+                    st.rerun()
 
         forgot_col, _ = st.columns([1, 2])
         with forgot_col:
@@ -237,12 +244,25 @@ def render_signup():
                 st.session_state.auth_error = "비밀번호는 8자 이상이어야 합니다."
                 st.rerun()
             else:
-                st.session_state.logged_in = True
-                st.session_state.user_email = email
-                st.session_state.user_nickname = nickname
-                st.session_state.page = "main"
-                st.session_state._save_cookie = True
-                st.rerun()
+                try:
+                    supabase.auth.sign_up({
+                        "email": email,
+                        "password": password,
+                        "options": {"data": {"nickname": nickname}}
+                    })
+                    st.session_state.logged_in = True
+                    st.session_state.user_email = email
+                    st.session_state.user_nickname = nickname
+                    st.session_state.page = "main"
+                    st.session_state._save_cookie = True
+                    st.rerun()
+                except Exception as e:
+                    err = str(e)
+                    if "already registered" in err:
+                        st.session_state.auth_error = "이미 사용 중인 이메일이에요."
+                    else:
+                        st.session_state.auth_error = "회원가입 실패. 다시 시도해주세요."
+                    st.rerun()
 
         st.markdown("""
         <div style='text-align:center; margin-top:16px; font-size:14px; color:#64748B;'>

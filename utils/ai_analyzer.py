@@ -8,7 +8,10 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 from difflib import SequenceMatcher
 
-RUNYOURAI_API_KEY = "runyour-v1-f00f09d0-daab-42a0-aad2-617190e9b13e-65fYlcsCikWpK93sI92CkN1glgvno1RoWa0bhT-NNd0zbEmRws0VqB3-EEYjhuSc"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+RUNYOURAI_API_KEY = os.getenv("RUNYOURAI_API_KEY")
 RUNYOURAI_BASE_URL = "https://api.runyour.ai/v1"
 
 runyour_client = OpenAI(
