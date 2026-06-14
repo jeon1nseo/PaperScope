@@ -152,18 +152,15 @@ with nav_col:
 with user_col:
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     nickname = st.session_state.user_nickname
-    btn_col1, btn_col2 = st.columns(2)
-    with btn_col1:
-        if st.button(f"👤 {nickname}", key="go_profile"):
-            st.session_state.page = "profile"
-            st.rerun()
-    with btn_col2:
-        if st.button("로그아웃", key="logout"):
-            st.session_state.logged_in = False
-            st.session_state.page = "login"
-            st.session_state.user_email = ""
-            st.session_state.user_nickname = ""
-            st.rerun()
+    if st.button(f"{nickname}  |  로그아웃", key="logout"):
+        st.session_state.logged_in = False
+        st.session_state.page = "login"
+        st.session_state.user_email = ""
+        st.session_state.user_nickname = ""
+        st.rerun()
+    if st.button("👤 마이페이지", key="go_profile"):
+        st.session_state.page = "profile"
+        st.rerun()
 
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 

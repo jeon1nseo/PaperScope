@@ -3,10 +3,11 @@ import streamlit as st
 
 def render_profile():
     st.markdown("""
-    <div style='background:#1E293B; padding:24px 28px; border-radius:16px; margin-bottom:24px;'>
-      <div style='font-size:40px; margin-bottom:8px;'>👤</div>
-      <div style='font-size:22px; font-weight:800; color:white;'>{}</div>
-      <div style='font-size:14px; color:#94A3B8; margin-top:4px;'>{}</div>
+    <div style='background:#1E293B; padding:20px 28px; border-radius:16px; margin-bottom:24px; display:flex; align-items:center; gap:16px;'>
+      <div>
+        <div style='font-size:20px; font-weight:800; color:white;'>{}</div>
+        <div style='font-size:13px; color:#94A3B8; margin-top:2px;'>{}</div>
+      </div>
     </div>
     """.format(
         st.session_state.get("user_nickname", ""),
