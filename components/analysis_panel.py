@@ -1,8 +1,59 @@
 import streamlit as st
 
 
+def _render_real_paper(paper: dict):
+    """논문 목록에서 선택한 논문 상세 표시"""
+    q = paper.get("q_level", "")
+    scie = "🔵 SCIE" if paper.get("scie") == "Yes" else ""
+    q_label = {"Q1": "🟢 Q1", "Q2": "🟡 Q2", "Q3": "🟠 Q3"}.get(q, q)
+
+    st.markdown(f"""
+    <div style='background:white; border-radius:12px; padding:24px;
+                box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:16px;'>
+      <div style='font-size:18px; font-weight:800; color:#0F172A; margin-bottom:8px;'>{paper.get('title','')}</div>
+      <div style='font-size:13px; color:#64748B; margin-bottom:8px;'>👥 {paper.get('authors','')}</div>
+      <div style='font-size:13px; color:#64748B; margin-bottom:12px;'>
+        ⭐ {paper.get('citations',0):,} citations &nbsp;|&nbsp; {q_label} {scie} &nbsp;|&nbsp; {paper.get('field','')} · {paper.get('year','')}
+      </div>
+      <div style='font-size:13px; color:#475569; margin-bottom:4px;'>📰 {paper.get('journal','')}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    abstract = paper.get("abstract", "")
+    if abstract:
+        st.markdown(f"""
+        <div style='background:#F8FAFC; border-radius:10px; padding:16px; border:1px solid #E2E8F0; margin-bottom:12px;'>
+          <div style='font-size:13px; font-weight:700; color:#334155; margin-bottom:8px;'>📋 초록</div>
+          <div style='font-size:13px; color:#475569; line-height:1.7;'>{abstract}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    doi = paper.get("doi", "")
+    pdf_url = paper.get("pdf_url", "")
+    col1, col2 = st.columns(2)
+    with col1:
+        if doi and doi != "DOI 없음":
+            st.link_button("🔗 DOI 링크", doi, use_container_width=True)
+    with col2:
+        if pdf_url:
+            st.link_button("📄 PDF 다운로드", pdf_url, use_container_width=True)
+
+
 def render_analysis_panel():
-    if "pdf_analysis" not in st.session_state or not st.session_state.pdf_analysis:
+    selected = st.session_state.get("selected_paper")
+
+    # 논문 목록에서 선택한 경우
+    if selected and selected != "pdf":
+        paper = st.session_state.get("selected_real_paper")
+        if paper:
+            if st.button("✕ 닫기", key="close_real_paper"):
+                st.session_state.selected_paper = None
+                st.session_state.selected_real_paper = None
+                st.rerun()
+            _render_real_paper(paper)
+            return
+
+    if selected != "pdf" or "pdf_analysis" not in st.session_state or not st.session_state.pdf_analysis:
         st.markdown("""
         <div style='background: #FFFFFF; border-radius: 16px; padding: 80px 24px;
                     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); text-align: center; border: 1px solid #F1F5F9;'>
