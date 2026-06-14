@@ -69,6 +69,19 @@ def render_paper_list():
                         analysis = analyze_paper_with_runyour_ai(grobid_parsed, model_id=selected_engine)
                         st.session_state.pdf_analysis = analysis
 
+                    # 분석 히스토리 저장
+                    if "error" not in analysis:
+                        from datetime import datetime
+                        history = st.session_state.get("pdf_history", [])
+                        history.append({
+                            "name": uploaded.name,
+                            "reliability": analysis.get("reliability_score", "-"),
+                            "reproducibility": analysis.get("reproducibility_score", "-"),
+                            "date": datetime.now().strftime("%m/%d %H:%M"),
+                            "analysis": analysis,
+                        })
+                        st.session_state.pdf_history = history
+
                     st.session_state.selected_paper = "pdf"
                     st.rerun()
             else:
@@ -183,7 +196,18 @@ def render_paper_list():
                         st.markdown(f"**{paper['title']}**")
                         st.caption(f"👥 {paper['authors']}")
                         st.caption(f"⭐ {paper['citations']:,} citations  {q_label} {scie}  {paper['field']} · {paper['year']}")
-                    if st.button("📊 논문 상세보기", key=f"analyze_{paper['id']}", use_container_width=True):
-                        st.session_state.selected_paper = paper["id"]
-                        st.session_state.selected_real_paper = paper
-                        st.rerun()
+                    btn1, btn2 = st.columns([3, 1])
+                    with btn1:
+                        if st.button("📊 논문 상세보기", key=f"analyze_{paper['id']}", use_container_width=True):
+                            st.session_state.selected_paper = paper["id"]
+                            st.session_state.selected_real_paper = paper
+                            st.rerun()
+                    with btn2:
+                        bookmarks = st.session_state.get("bookmarks", [])
+                        is_bookmarked = any(p["id"] == paper["id"] for p in bookmarks)
+                        if st.button("★" if is_bookmarked else "☆", key=f"bm_{paper['id']}", use_container_width=True):
+                            if is_bookmarked:
+                                st.session_state.bookmarks = [p for p in bookmarks if p["id"] != paper["id"]]
+                            else:
+                                st.session_state.bookmarks = bookmarks + [paper]
+                            st.rerun()

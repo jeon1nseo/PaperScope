@@ -2,6 +2,7 @@ import streamlit as st
 from components.paper_list import render_paper_list
 from components.analysis_panel import render_analysis_panel
 from components.auth import render_login, render_signup, render_forgot_password
+from components.profile import render_profile
 
 st.set_page_config(
     page_title="PaperScope",
@@ -33,6 +34,10 @@ if "pdf_analysis" not in st.session_state:
     st.session_state.pdf_analysis = None
 if "selected_real_paper" not in st.session_state:
     st.session_state.selected_real_paper = None
+if "bookmarks" not in st.session_state:
+    st.session_state.bookmarks = []
+if "pdf_history" not in st.session_state:
+    st.session_state.pdf_history = []
 
 # ── 인증 페이지 ──────────────────────────────────────
 if not st.session_state.logged_in:
@@ -147,14 +152,28 @@ with nav_col:
 with user_col:
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     nickname = st.session_state.user_nickname
-    if st.button(f"👤 {nickname}  |  로그아웃", key="logout"):
-        st.session_state.logged_in = False
-        st.session_state.page = "login"
-        st.session_state.user_email = ""
-        st.session_state.user_nickname = ""
-        st.rerun()
+    btn_col1, btn_col2 = st.columns(2)
+    with btn_col1:
+        if st.button(f"👤 {nickname}", key="go_profile"):
+            st.session_state.page = "profile"
+            st.rerun()
+    with btn_col2:
+        if st.button("로그아웃", key="logout"):
+            st.session_state.logged_in = False
+            st.session_state.page = "login"
+            st.session_state.user_email = ""
+            st.session_state.user_nickname = ""
+            st.rerun()
 
 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+# 개인페이지
+if st.session_state.page == "profile":
+    if st.button("← 메인으로 돌아가기", key="back_main"):
+        st.session_state.page = "main"
+        st.rerun()
+    render_profile()
+    st.stop()
 
 # 두 패널 레이아웃
 left_col, right_col = st.columns([1, 1.2], gap="medium")
